@@ -1,0 +1,41 @@
+AC_PREREQ(2.61)
+AC_INIT([bfast], [0.0.1], [sylvain.foret@anu.edu.au])
+AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+AC_CONFIG_SRCDIR([src/libbfast/bfastsequence.h])
+AC_CONFIG_HEADER([config.h])
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_CC_C99
+AC_PROG_INSTALL
+AC_PROG_LIBTOOL
+
+# Checks for libraries.
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([fcntl.h stdlib.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+changequote(,)dnl
+if test "x$GCC" = "xyes"; then
+  case " $CFLAGS " in
+  *[\ \	]-Wall[\ \	]*) ;;
+  *) CFLAGS="$CFLAGS -Wall" ;;
+  esac
+fi
+changequote([,])dnl
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([strdup])
+
+AC_OUTPUT([
+	Makefile
+	src/Makefile
+	src/bfast/Makefile
+	src/libbfast/Makefile])
