@@ -72,7 +72,7 @@ char*          bfast_sequence_to_string (BfastSequence   *seq);
 typedef int    (*BfastSeqIterFunc)      (BfastSequence   *seq,
                                          void            *data);
 
-void           bfast_iter_sequences     (BfastSequence  **sequences,
+void           bfast_sequences_iter     (BfastSequence  **sequences,
                                          BfastSeqIterFunc func,
                                          void            *data);
 

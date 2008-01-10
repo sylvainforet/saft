@@ -143,7 +143,7 @@ bfast_sequence_to_string (BfastSequence *seq)
 }
 
 void
-bfast_iter_sequences (BfastSequence  **sequences,
+bfast_sequences_iter (BfastSequence  **sequences,
                       BfastSeqIterFunc func,
                       void            *data)
 {
