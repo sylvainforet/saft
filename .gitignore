@@ -22,3 +22,4 @@ stamp-h1
 *.lo
 .deps
 .libs
+.*.swp
