@@ -4,11 +4,15 @@ lib_LTLIBRARIES =		\
 libbfast_sources =		\
 	bfasterror.c		\
 	bfastfasta.c		\
+	bfasthash.c			\
+	bfastsearch.c		\
 	bfastsequence.c
 
 libbfast_headers =		\
 	bfasterror.h		\
 	bfastfasta.h		\
+	bfasthash.h			\
+	bfastsearch.h		\
 	bfastsequence.h
 
 # TODO add library version info like that:
