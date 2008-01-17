@@ -4,14 +4,14 @@ lib_LTLIBRARIES =		\
 libbfast_sources =		\
 	bfasterror.c		\
 	bfastfasta.c		\
-	bfasthash.c			\
+	bfasthash.c		\
 	bfastsearch.c		\
 	bfastsequence.c
 
 libbfast_headers =		\
 	bfasterror.h		\
 	bfastfasta.h		\
-	bfasthash.h			\
+	bfasthash.h		\
 	bfastsearch.h		\
 	bfastsequence.h
 

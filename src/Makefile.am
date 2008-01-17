@@ -1,5 +1,6 @@
 SUBDIRS =		\
 	libbfast	\
+	tests		\
 	bfast
 
 MAINTAINERCLEANFILES =	\
