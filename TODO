@@ -1,0 +1,2 @@
+BUGS:
++ fix the case when the word size is larger than the sequences.
