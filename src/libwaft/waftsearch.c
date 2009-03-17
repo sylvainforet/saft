@@ -1,4 +1,4 @@
-/* bfastsearch.c
+/* waftsearch.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,13 +22,13 @@
 
 #include <stdlib.h>
 
-#include "bfastsearch.h"
+#include "waftsearch.h"
 
 
-BfastSearchOptions*
-bfast_search_options_new ()
+WaftSearchOptions*
+waft_search_options_new ()
 {
-  BfastSearchOptions *options;
+  WaftSearchOptions *options;
 
   options            = malloc (sizeof (*options));
   options->word_size = 0;
@@ -37,16 +37,16 @@ bfast_search_options_new ()
 }
 
 void
-bfast_search_options_free (BfastSearchOptions *options)
+waft_search_options_free (WaftSearchOptions *options)
 {
   if (options)
     free (options);
 }
 
-BfastSearch*
-bfast_search_new ()
+WaftSearch*
+waft_search_new ()
 {
-  BfastSearch *search;
+  WaftSearch *search;
 
   search            = malloc (sizeof (*search));
   search->options   = NULL;
@@ -60,26 +60,26 @@ bfast_search_new ()
 }
 
 void
-bfast_search_free (BfastSearch *search)
+waft_search_free (WaftSearch *search)
 {
   if (search)
     free (search);
 }
 
 void
-bfast_search_process (BfastSearch *search)
+waft_search_process (WaftSearch *search)
 {
   if (!search->query_h)
     {
-      search->query_h = bfast_htable_new (search->query->alphabet,
+      search->query_h = waft_htable_new (search->query->alphabet,
                                           search->options->word_size);
-      bfast_htable_add_seq (search->query_h, search->query);
+      waft_htable_add_seq (search->query_h, search->query);
     }
   if (!search->subject_h)
     {
-      search->subject_h = bfast_htable_new (search->query->alphabet,
+      search->subject_h = waft_htable_new (search->query->alphabet,
                                             search->options->word_size);
-      bfast_htable_add_seq (search->subject_h, search->subject);
+      waft_htable_add_seq (search->subject_h, search->subject);
     }
-  search->d2 = bfast_htable_d2 (search->subject_h, search->query_h);
+  search->d2 = waft_htable_d2 (search->subject_h, search->query_h);
 }

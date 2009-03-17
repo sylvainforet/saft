@@ -1,4 +1,4 @@
-/* bfastfasta.c
+/* waftfasta.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,27 +26,27 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "bfasterror.h"
-#include "bfastfasta.h"
+#include "wafterror.h"
+#include "waftfasta.h"
 
 
-typedef struct _BfastFastaParseData BfastFastaParseData;
+typedef struct _WaftFastaParseData WaftFastaParseData;
 
-struct _BfastFastaParseData
+struct _WaftFastaParseData
 {
-  BfastFasta **seqs;
+  WaftFasta **seqs;
   int          idx;
   int          alloc;
 };
 
-static int bfast_fasta_append (BfastFasta          *fasta,
-                               BfastFastaParseData *data);
+static int waft_fasta_append (WaftFasta          *fasta,
+                               WaftFastaParseData *data);
 
 
-BfastFasta*
-bfast_fasta_new ()
+WaftFasta*
+waft_fasta_new ()
 {
-  BfastFasta *fasta;
+  WaftFasta *fasta;
 
   fasta       = malloc (sizeof (*fasta));
   fasta->name = NULL;
@@ -56,7 +56,7 @@ bfast_fasta_new ()
 }
 
 void
-bfast_fasta_free (BfastFasta *fasta)
+waft_fasta_free (WaftFasta *fasta)
 {
   if (fasta)
     {
@@ -81,18 +81,18 @@ bfast_fasta_free (BfastFasta *fasta)
 #define CAP_STR(str, buf_idx, chk_idx) ENSURE (str, buf_idx, chk_idx, 1); \
                                        (str)[(buf_idx)] = '\0';
 
-BfastFasta**
-bfast_fasta_read (const char   *filename,
+WaftFasta**
+waft_fasta_read (const char   *filename,
                   unsigned int *n)
 {
-  BfastFastaParseData data;
+  WaftFastaParseData data;
 
   data.seqs  = NULL;
   data.idx   = -1;
   data.alloc =  0;
 
-  bfast_fasta_iter (filename,
-                    (BfastFastaIterFunc)bfast_fasta_append,
+  waft_fasta_iter (filename,
+                    (WaftFastaIterFunc)waft_fasta_append,
                     &data);
 
   ENSURE (data.seqs, data.idx, data.alloc, 1);
@@ -104,12 +104,12 @@ bfast_fasta_read (const char   *filename,
 }
 
 static int
-bfast_fasta_append (BfastFasta          *fasta,
-                    BfastFastaParseData *data)
+waft_fasta_append (WaftFasta          *fasta,
+                    WaftFastaParseData *data)
 {
-  BfastFasta *seq_new;
+  WaftFasta *seq_new;
 
-  seq_new       = bfast_fasta_new ();
+  seq_new       = waft_fasta_new ();
   seq_new->name = fasta->name;
   seq_new->seq  = fasta->seq;
   fasta->name   = NULL;
@@ -122,12 +122,12 @@ bfast_fasta_append (BfastFasta          *fasta,
 }
 
 void
-bfast_fasta_iter (const char        *filename,
-                  BfastFastaIterFunc func,
+waft_fasta_iter (const char        *filename,
+                  WaftFastaIterFunc func,
                   void              *data)
 {
   char        buffer[READ_CHUNK];
-  BfastFasta *seq              = NULL;
+  WaftFasta *seq              = NULL;
   int         cur_name_alloc   =  0;
   int         cur_name_idx     = -1;
   int         cur_seq_alloc    =  0;
@@ -138,7 +138,7 @@ bfast_fasta_iter (const char        *filename,
 
   if ((in = open (filename, O_RDONLY | O_NONBLOCK)) == -1)
     {
-      bfast_error ("Couldn't open `%s'", filename);
+      waft_error ("Couldn't open `%s'", filename);
       return;
     }
 
@@ -165,17 +165,17 @@ bfast_fasta_iter (const char        *filename,
                   CAP_STR (seq->seq, cur_seq_idx, cur_seq_alloc);
                   if (!func (seq, data))
                     {
-                      bfast_fasta_free (seq);
+                      waft_fasta_free (seq);
                       close(in);
                       return;
                     }
-                  bfast_fasta_free (seq);
+                  waft_fasta_free (seq);
                 }
               cur_name_alloc =  0;
               cur_name_idx   = -1;
               cur_seq_alloc  =  0;
               cur_seq_idx    = -1;
-              seq            = bfast_fasta_new ();
+              seq            = waft_fasta_new ();
               in_header      = 1;
             }
           else
@@ -209,26 +209,26 @@ bfast_fasta_iter (const char        *filename,
         }
     }
   if (status == -1)
-    bfast_error ("An IO error occured while reading `%s'", filename);
+    waft_error ("An IO error occured while reading `%s'", filename);
   if (seq)
     {
       CAP_STR (seq->name, cur_name_idx, cur_name_alloc);
       CAP_STR (seq->seq, cur_seq_idx, cur_seq_alloc);
       func (seq, data);
-      bfast_fasta_free (seq);
+      waft_fasta_free (seq);
     }
   close (in);
 }
 
-BfastSequence*
-bfast_fasta_to_seq (BfastFasta    *fasta,
-                    BfastAlphabet *alphabet)
+WaftSequence*
+waft_fasta_to_seq (WaftFasta    *fasta,
+                    WaftAlphabet *alphabet)
 {
-  BfastSequence *seq;
+  WaftSequence *seq;
   unsigned char *tmp_f;
-  BfastLetter   *tmp_s;
+  WaftLetter   *tmp_s;
 
-  seq           = bfast_sequence_new ();
+  seq           = waft_sequence_new ();
   seq->alphabet = alphabet;
   seq->name     = strdup (fasta->name);
   seq->size     = strlen (fasta->seq);
@@ -240,7 +240,7 @@ bfast_fasta_to_seq (BfastFasta    *fasta,
     {
       *++tmp_s = alphabet->codes[*tmp_f++];
       if (*tmp_s == 0)
-        bfast_error ("Encountered symbol `%d' unknown in alphabet `%s'",
+        waft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
                      *tmp_s, alphabet->name);
     }
   return seq;

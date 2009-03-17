@@ -1,19 +1,19 @@
-libbfastdir = $(top_srcdir)/src/libbfast
+libwaftdir = $(top_srcdir)/src/libwaft
 
 INCLUDES =				\
-	-I$(libbfastdir)
+	-I$(libwaftdir)
 
 noinst_PROGRAMS =			\
 	test_fasta			\
 	test_search2seqs
 
 test_fasta_LDADD =			\
-	$(libbfastdir)/libbfast.la
+	$(libwaftdir)/libwaft.la
 test_fasta_SOURCES =			\
 	test_fasta.c
 
 test_search2seqs_LDADD =		\
-	$(libbfastdir)/libbfast.la
+	$(libwaftdir)/libwaft.la
 test_search2seqs_SOURCES =		\
 	test_search2seqs.c
 

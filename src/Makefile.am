@@ -1,7 +1,7 @@
 SUBDIRS =		\
-	libbfast	\
+	libwaft	\
 	tests		\
-	bfast
+	waft
 
 MAINTAINERCLEANFILES =	\
 	Makefile.in

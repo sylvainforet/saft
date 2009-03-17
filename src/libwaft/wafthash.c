@@ -1,4 +1,4 @@
-/* bfasthash.c
+/* wafthash.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,18 +21,18 @@
 
 #include <stdlib.h>
 
-#include "bfasthash.h"
+#include "wafthash.h"
 
 
-#define BFAST_HTABLE_SIZE 1024
+#define WAFT_HTABLE_SIZE 1024
 
-static unsigned int bfast_get_high_bit (unsigned int x);
+static unsigned int waft_get_high_bit (unsigned int x);
 
 
-BfastHNode*
-bfast_hnode_new ()
+WaftHNode*
+waft_hnode_new ()
 {
-  BfastHNode *node;
+  WaftHNode *node;
 
   node        = malloc (sizeof (*node));
   node->seq   = NULL;
@@ -43,26 +43,26 @@ bfast_hnode_new ()
 }
 
 void
-bfast_hnode_free (BfastHNode *node)
+waft_hnode_free (WaftHNode *node)
 {
   if (node)
     {
       if (node->next)
-        bfast_hnode_free (node->next);
+        waft_hnode_free (node->next);
       free (node);
     }
 }
 
-BfastHTable*
-bfast_htable_new (BfastAlphabet *alphabet,
+WaftHTable*
+waft_htable_new (WaftAlphabet *alphabet,
                   unsigned int   word_size)
 {
-  BfastHTable *table;
+  WaftHTable *table;
   unsigned int i;
 
   table            = malloc (sizeof (*table));
-  table->size      = BFAST_HTABLE_SIZE;
-  table->shift     = bfast_get_high_bit (alphabet->size);
+  table->size      = WAFT_HTABLE_SIZE;
+  table->shift     = waft_get_high_bit (alphabet->size);
   table->table     = malloc (sizeof (*table->table) * table->size);
   table->word_size = word_size;
 
@@ -73,57 +73,57 @@ bfast_htable_new (BfastAlphabet *alphabet,
 }
 
 void
-bfast_htable_clear (BfastHTable *table)
+waft_htable_clear (WaftHTable *table)
 {
   unsigned int i;
 
   if (table)
     for (i = 0; i < table->size; i++)
       {
-        bfast_hnode_free (table->table[i]);
+        waft_hnode_free (table->table[i]);
         table->table[i] = NULL;
       }
 }
 
 void
-bfast_htable_free (BfastHTable *table)
+waft_htable_free (WaftHTable *table)
 {
   unsigned int i;
 
   if (table)
     {
       for (i = 0; i < table->size; i++)
-        bfast_hnode_free (table->table[i]);
+        waft_hnode_free (table->table[i]);
       free (table->table);
       free (table);
     }
 }
 
 void
-bfast_htable_add_seq (BfastHTable   *table,
-                      BfastSequence *seq)
+waft_htable_add_seq (WaftHTable   *table,
+                      WaftSequence *seq)
 {
   unsigned int i;
 
   for (i = seq->size - table->word_size + 1; i-- > 0; )
-    bfast_htable_add (table, &seq->seq[i]);
+    waft_htable_add (table, &seq->seq[i]);
 }
 
 void
-bfast_htable_add (BfastHTable *table,
-                  BfastLetter *start)
+waft_htable_add (WaftHTable *table,
+                  WaftLetter *start)
 {
-  const unsigned int idx = bfast_htable_hash (table, start);
-  BfastHNode        *tmp;
+  const unsigned int idx = waft_htable_hash (table, start);
+  WaftHNode        *tmp;
 
   for (tmp = table->table[idx]; tmp; tmp = tmp->next)
-    if (bfast_htable_cmp (table, tmp, start))
+    if (waft_htable_cmp (table, tmp, start))
       {
         tmp->count++;
         return;
       }
 
-  tmp               = bfast_hnode_new ();
+  tmp               = waft_hnode_new ();
   tmp->seq          = start;
   tmp->count        = 1;
   tmp->next         = table->table[idx];
@@ -131,8 +131,8 @@ bfast_htable_add (BfastHTable *table,
 }
 
 unsigned int
-bfast_htable_hash (BfastHTable *table,
-                   BfastLetter *start)
+waft_htable_hash (WaftHTable *table,
+                   WaftLetter *start)
 {
   unsigned int ret = *start;
   unsigned int i;
@@ -140,16 +140,16 @@ bfast_htable_hash (BfastHTable *table,
   for (i = 1; i < table->word_size; i++)
     ret = (ret << table->shift) | *++start;
 
-  return ret % BFAST_HTABLE_SIZE;
+  return ret % WAFT_HTABLE_SIZE;
 }
 
 int
-bfast_htable_cmp (BfastHTable *table,
-                  BfastHNode  *node,
-                  BfastLetter *start)
+waft_htable_cmp (WaftHTable *table,
+                  WaftHNode  *node,
+                  WaftLetter *start)
 {
   unsigned int i;
-  BfastLetter *tmp = node->seq - 1;
+  WaftLetter *tmp = node->seq - 1;
 
   --start;
   for (i = 0; i < table->word_size; i++)
@@ -160,18 +160,18 @@ bfast_htable_cmp (BfastHTable *table,
 }
 
 unsigned int
-bfast_htable_d2 (BfastHTable *tab1,
-                 BfastHTable *tab2)
+waft_htable_d2 (WaftHTable *tab1,
+                 WaftHTable *tab2)
 {
-  BfastHNode   *tmp1;
-  BfastHNode   *tmp2;
+  WaftHNode   *tmp1;
+  WaftHNode   *tmp2;
   unsigned int  i;
   unsigned int  d2 = 0;
 
   for (i = 0; i < tab1->size; i++)
     for (tmp1 = tab1->table[i]; tmp1; tmp1 = tmp1->next)
       {
-        tmp2 = bfast_htable_lookup (tab2, tmp1->seq);
+        tmp2 = waft_htable_lookup (tab2, tmp1->seq);
         if (tmp2)
           d2 += tmp1->count * tmp2->count;
       }
@@ -179,15 +179,15 @@ bfast_htable_d2 (BfastHTable *tab1,
   return d2;
 }
 
-BfastHNode*
-bfast_htable_lookup (BfastHTable *table,
-                     BfastLetter *start)
+WaftHNode*
+waft_htable_lookup (WaftHTable *table,
+                     WaftLetter *start)
 {
-  const unsigned int idx = bfast_htable_hash (table, start);
-  BfastHNode        *tmp;
+  const unsigned int idx = waft_htable_hash (table, start);
+  WaftHNode        *tmp;
 
   for (tmp = table->table[idx]; tmp; tmp = tmp->next)
-    if (bfast_htable_cmp (table, tmp, start))
+    if (waft_htable_cmp (table, tmp, start))
       return tmp;
 
   return NULL;
@@ -197,7 +197,7 @@ bfast_htable_lookup (BfastHTable *table,
  * From JJ (Joerg Arndt)
  */
 static unsigned int
-bfast_get_high_bit (unsigned int x)
+waft_get_high_bit (unsigned int x)
 {
   unsigned int r = 0;
 

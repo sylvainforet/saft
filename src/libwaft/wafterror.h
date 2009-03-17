@@ -1,4 +1,4 @@
-/* bfastsearch.h
+/* wafterror.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,57 +19,24 @@
  *
  */
 
-#ifndef __BFAST_SEARCH_H__
-#define __BFAST_SEARCH_H__
+#ifndef __WAFT_ERROR_H__
+#define __WAFT_ERROR_H__
 
-
-#include "bfasthash.h"
-
+#include "stdarg.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-/******************/
-/* Search Options */
-/******************/
+typedef void      (*WaftErrorHandler)    (const char *fmt, va_list ap);
 
-typedef struct _BfastSearchOptions BfastSearchOptions;
+WaftErrorHandler waft_set_error_handler (WaftErrorHandler handler);
 
-struct _BfastSearchOptions
-{
-  unsigned int word_size;
-};
-
-BfastSearchOptions *bfast_search_options_new  (void);
-
-void                bfast_search_options_free (BfastSearchOptions *options);
-
-/**********/
-/* Search */
-/**********/
-
-typedef struct _BfastSearch BfastSearch;
-
-struct _BfastSearch
-{
-  BfastSearchOptions *options;
-  BfastSequence      *query;
-  BfastSequence      *subject;
-  BfastHTable        *query_h;
-  BfastHTable        *subject_h;
-  unsigned long int   d2;
-};
-
-BfastSearch *bfast_search_new     (void);
-
-void         bfast_search_free    (BfastSearch *search);
-
-void         bfast_search_process (BfastSearch *search);
+void              waft_error             (const char *fmt, ...);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __BFAST_SEARCH_H__ */
+#endif /* __WAFT_ERROR_H__ */

@@ -1,4 +1,4 @@
-/* bfastsequence.c
+/* waftsequence.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,10 +21,10 @@
 
 #include <stdlib.h>
 
-#include "bfastsequence.h"
+#include "waftsequence.h"
 
 
-BfastAlphabet BfastAlphabetDNA =
+WaftAlphabet WaftAlphabetDNA =
 {
   .name    = "DNA",
   .letters = "NATGC",
@@ -42,7 +42,7 @@ BfastAlphabet BfastAlphabetDNA =
     }
 };
 
-BfastAlphabet BfastAlphabetProtein =
+WaftAlphabet WaftAlphabetProtein =
 {
   .name    = "Protein",
   .letters = "XACDEFGHIKLMNPQRSTVWY",
@@ -92,10 +92,10 @@ BfastAlphabet BfastAlphabetProtein =
     }
 };
 
-BfastAlphabet*
-bfast_alphabet_new ()
+WaftAlphabet*
+waft_alphabet_new ()
 {
-  BfastAlphabet *alphabet;
+  WaftAlphabet *alphabet;
 
   alphabet          = malloc (sizeof (*alphabet));
   alphabet->name    = NULL;
@@ -106,7 +106,7 @@ bfast_alphabet_new ()
 }
 
 void
-bfast_alphabet_free (BfastAlphabet *alphabet)
+waft_alphabet_free (WaftAlphabet *alphabet)
 {
   if (alphabet)
     {
@@ -118,10 +118,10 @@ bfast_alphabet_free (BfastAlphabet *alphabet)
     }
 }
 
-BfastSequence*
-bfast_sequence_new (void)
+WaftSequence*
+waft_sequence_new (void)
 {
-  BfastSequence *seq;
+  WaftSequence *seq;
 
   seq           = malloc (sizeof (*seq));
   seq->name     = NULL;
@@ -133,7 +133,7 @@ bfast_sequence_new (void)
 }
 
 void
-bfast_sequence_free (BfastSequence *seq)
+waft_sequence_free (WaftSequence *seq)
 {
   if (seq)
     {
@@ -146,7 +146,7 @@ bfast_sequence_free (BfastSequence *seq)
 }
 
 char*
-bfast_sequence_to_string (BfastSequence *seq)
+waft_sequence_to_string (WaftSequence *seq)
 {
   char*        ret;
   unsigned int i;
@@ -160,8 +160,8 @@ bfast_sequence_to_string (BfastSequence *seq)
 }
 
 void
-bfast_sequences_iter (BfastSequence  **sequences,
-                      BfastSeqIterFunc func,
+waft_sequences_iter (WaftSequence  **sequences,
+                      WaftSeqIterFunc func,
                       void            *data)
 {
   while (*sequences)

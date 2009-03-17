@@ -1,4 +1,4 @@
-/* bfastsequence.h
+/* waftsequence.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __BFAST_SEQUENCE_H__
-#define __BFAST_SEQUENCE_H__
+#ifndef __WAFT_SEQUENCE_H__
+#define __WAFT_SEQUENCE_H__
 
 #ifdef __cplusplus
 extern "C"
@@ -31,15 +31,15 @@ extern "C"
 /* Letter */
 /**********/
 
-typedef unsigned char BfastLetter;
+typedef unsigned char WaftLetter;
 
 /************/
 /* Alphabet */
 /************/
 
-typedef struct _BfastAlphabet BfastAlphabet;
+typedef struct _WaftAlphabet WaftAlphabet;
 
-struct _BfastAlphabet
+struct _WaftAlphabet
 {
   char         *name;
   /* The letters for printing, indexed as in codes
@@ -49,52 +49,52 @@ struct _BfastAlphabet
   /* The codes indexing the letters
    * Letters of the aphabet start at 1
    * The 0 is for all the unknown codes */
-  BfastLetter   codes[256];
+  WaftLetter   codes[256];
   unsigned int  size;
 };
 
-BfastAlphabet* bfast_alphabet_new (void);
+WaftAlphabet* waft_alphabet_new (void);
 
-void           bfast_alphabet_free (BfastAlphabet *alphabet);
+void           waft_alphabet_free (WaftAlphabet *alphabet);
 
 /* Statically predefined alphabets */
 
-extern BfastAlphabet BfastAlphabetDNA;
-extern BfastAlphabet BfastAlphabetProtein;
+extern WaftAlphabet WaftAlphabetDNA;
+extern WaftAlphabet WaftAlphabetProtein;
 
 /************/
 /* Sequence */
 /************/
 
-typedef struct _BfastSequence BfastSequence;
+typedef struct _WaftSequence WaftSequence;
 
-struct _BfastSequence
+struct _WaftSequence
 {
   char          *name;
-  BfastLetter   *seq;
-  BfastAlphabet *alphabet;
+  WaftLetter   *seq;
+  WaftAlphabet *alphabet;
   unsigned int   size;
 };
 
-BfastSequence* bfast_sequence_new       (void);
+WaftSequence* waft_sequence_new       (void);
 
-void           bfast_sequence_free      (BfastSequence   *seq);
+void           waft_sequence_free      (WaftSequence   *seq);
 
-char*          bfast_sequence_to_string (BfastSequence   *seq);
+char*          waft_sequence_to_string (WaftSequence   *seq);
 
 /*************/
 /* Sequences */
 /*************/
 
-typedef int    (*BfastSeqIterFunc)      (BfastSequence   *seq,
+typedef int    (*WaftSeqIterFunc)      (WaftSequence   *seq,
                                          void            *data);
 
-void           bfast_sequences_iter     (BfastSequence  **sequences,
-                                         BfastSeqIterFunc func,
+void           waft_sequences_iter     (WaftSequence  **sequences,
+                                         WaftSeqIterFunc func,
                                          void            *data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __BFAST_SEQUENCE_H__ */
+#endif /* __WAFT_SEQUENCE_H__ */

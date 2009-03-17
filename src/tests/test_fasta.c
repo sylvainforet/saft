@@ -22,40 +22,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bfasterror.h"
-#include "bfastfasta.h"
+#include "wafterror.h"
+#include "waftfasta.h"
 
 int
 main (int argc, char **argv)
 {
-  BfastFasta   **seqs;
-  BfastFasta   **tmp;
+  WaftFasta   **seqs;
+  WaftFasta   **tmp;
   unsigned int   n;
 
   if (argc < 2)
     {
-      bfast_error ("A fasta file need to be given as argument");
+      waft_error ("A fasta file need to be given as argument");
       return 1;
     }
 
-  seqs = bfast_fasta_read (argv[1], &n);
+  seqs = waft_fasta_read (argv[1], &n);
   tmp  = seqs - 1;
   while (*++tmp)
     {
-      BfastSequence *seq;
+      WaftSequence *seq;
       char          *str;
 
-      seq = bfast_fasta_to_seq (*tmp, &BfastAlphabetDNA);
+      seq = waft_fasta_to_seq (*tmp, &WaftAlphabetDNA);
       printf (">%s\n", seq->name);
-      str = bfast_sequence_to_string (seq);
+      str = waft_sequence_to_string (seq);
       printf ("%s\n", str);
       free (str);
-      bfast_sequence_free (seq);
+      waft_sequence_free (seq);
     }
 
   tmp = seqs - 1;
   while (*++tmp)
-    bfast_fasta_free (*tmp);
+    waft_fasta_free (*tmp);
   free (seqs);
 
   return 0;

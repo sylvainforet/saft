@@ -1,4 +1,4 @@
-/* bfastmain.c
+/* wafterror.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,13 +19,45 @@
  *
  */
 
+#include <stdio.h>
 
-#include "bfasterror.h"
+#include "wafterror.h"
 
-int
-main (int argc, char **argv)
+
+static void waft_error_handler_default (const char *fmt,
+                                         va_list     ap);
+
+
+WaftErrorHandler waft_error_handler = waft_error_handler_default;
+
+
+WaftErrorHandler
+waft_set_error_handler (WaftErrorHandler handler)
 {
-  bfast_error ("Nothing is implemented yet ...");
+  WaftErrorHandler ret = waft_error_handler;
+  waft_error_handler = handler;
+  return ret;
+}
 
-  return 0;
+void
+waft_error (const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+
+  if (waft_error_handler)
+    (waft_error_handler)(fmt, ap);
+
+  va_end(ap);
+}
+
+
+static void
+waft_error_handler_default (const char *fmt,
+                             va_list     ap)
+{
+  fprintf (stderr, "[ERROR] ");
+  vfprintf (stderr, fmt, ap);
+  fprintf (stderr, ".\n");
 }
