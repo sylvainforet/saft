@@ -31,10 +31,12 @@ WaftAlphabet WaftAlphabetDNA =
   .size    = 4,
   .codes   = 
     {
+      ['N'] = 0,
       ['A'] = 1,
       ['T'] = 2,
       ['G'] = 3,
       ['C'] = 4,
+      ['n'] = 0,
       ['a'] = 1,
       ['t'] = 2,
       ['g'] = 3,
@@ -49,6 +51,7 @@ WaftAlphabet WaftAlphabetProtein =
   .size    = 20,
   .codes   = 
     {
+      ['X'] = 0,
       ['A'] = 1,
       ['C'] = 2,
       ['D'] = 3,
@@ -69,6 +72,7 @@ WaftAlphabet WaftAlphabetProtein =
       ['V'] = 18,
       ['W'] = 19,
       ['Y'] = 20,
+      ['n'] = 0,
       ['a'] = 1,
       ['c'] = 2,
       ['d'] = 3,
@@ -171,3 +175,6 @@ waft_sequences_iter (WaftSequence  **sequences,
       sequences++;
     }
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

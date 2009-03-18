@@ -49,13 +49,13 @@ struct _WaftAlphabet
   /* The codes indexing the letters
    * Letters of the aphabet start at 1
    * The 0 is for all the unknown codes */
-  WaftLetter   codes[256];
+  WaftLetter    codes[256];
   unsigned int  size;
 };
 
-WaftAlphabet* waft_alphabet_new (void);
+WaftAlphabet* waft_alphabet_new  (void);
 
-void           waft_alphabet_free (WaftAlphabet *alphabet);
+void          waft_alphabet_free (WaftAlphabet *alphabet);
 
 /* Statically predefined alphabets */
 
@@ -71,30 +71,33 @@ typedef struct _WaftSequence WaftSequence;
 struct _WaftSequence
 {
   char          *name;
-  WaftLetter   *seq;
-  WaftAlphabet *alphabet;
+  WaftLetter    *seq;
+  WaftAlphabet  *alphabet;
   unsigned int   size;
 };
 
 WaftSequence* waft_sequence_new       (void);
 
-void           waft_sequence_free      (WaftSequence   *seq);
+void          waft_sequence_free      (WaftSequence *seq);
 
-char*          waft_sequence_to_string (WaftSequence   *seq);
+char*         waft_sequence_to_string (WaftSequence *seq);
 
 /*************/
 /* Sequences */
 /*************/
 
-typedef int    (*WaftSeqIterFunc)      (WaftSequence   *seq,
-                                         void            *data);
+typedef int (*WaftSeqIterFunc)  (WaftSequence   *seq,
+                                 void           *data);
 
-void           waft_sequences_iter     (WaftSequence  **sequences,
-                                         WaftSeqIterFunc func,
-                                         void            *data);
+void        waft_sequences_iter (WaftSequence  **sequences,
+                                 WaftSeqIterFunc func,
+                                 void           *data);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __WAFT_SEQUENCE_H__ */
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

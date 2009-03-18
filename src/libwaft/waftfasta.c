@@ -35,12 +35,12 @@ typedef struct _WaftFastaParseData WaftFastaParseData;
 struct _WaftFastaParseData
 {
   WaftFasta **seqs;
-  int          idx;
-  int          alloc;
+  int         idx;
+  int         alloc;
 };
 
 static int waft_fasta_append (WaftFasta          *fasta,
-                               WaftFastaParseData *data);
+                              WaftFastaParseData *data);
 
 
 WaftFasta*
@@ -83,7 +83,7 @@ waft_fasta_free (WaftFasta *fasta)
 
 WaftFasta**
 waft_fasta_read (const char   *filename,
-                  unsigned int *n)
+                 unsigned int *n)
 {
   WaftFastaParseData data;
 
@@ -92,8 +92,8 @@ waft_fasta_read (const char   *filename,
   data.alloc =  0;
 
   waft_fasta_iter (filename,
-                    (WaftFastaIterFunc)waft_fasta_append,
-                    &data);
+                   (WaftFastaIterFunc)waft_fasta_append,
+                   &data);
 
   ENSURE (data.seqs, data.idx, data.alloc, 1);
   data.seqs[data.idx] = NULL;
@@ -105,7 +105,7 @@ waft_fasta_read (const char   *filename,
 
 static int
 waft_fasta_append (WaftFasta          *fasta,
-                    WaftFastaParseData *data)
+                   WaftFastaParseData *data)
 {
   WaftFasta *seq_new;
 
@@ -123,8 +123,8 @@ waft_fasta_append (WaftFasta          *fasta,
 
 void
 waft_fasta_iter (const char        *filename,
-                  WaftFastaIterFunc func,
-                  void              *data)
+                 WaftFastaIterFunc  func,
+                 void              *data)
 {
   char        buffer[READ_CHUNK];
   WaftFasta *seq              = NULL;
@@ -224,9 +224,9 @@ WaftSequence*
 waft_fasta_to_seq (WaftFasta    *fasta,
                     WaftAlphabet *alphabet)
 {
-  WaftSequence *seq;
+  WaftSequence  *seq;
   unsigned char *tmp_f;
-  WaftLetter   *tmp_s;
+  WaftLetter    *tmp_s;
 
   seq           = waft_sequence_new ();
   seq->alphabet = alphabet;
@@ -241,7 +241,10 @@ waft_fasta_to_seq (WaftFasta    *fasta,
       *++tmp_s = alphabet->codes[*tmp_f++];
       if (*tmp_s == 0)
         waft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
-                     *tmp_s, alphabet->name);
+                    *tmp_s, alphabet->name);
     }
   return seq;
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

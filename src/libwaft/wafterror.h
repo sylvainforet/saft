@@ -29,14 +29,19 @@ extern "C"
 {
 #endif
 
-typedef void      (*WaftErrorHandler)    (const char *fmt, va_list ap);
+typedef void     (*WaftErrorHandler)    (const char      *fmt,
+                                         va_list          ap);
 
 WaftErrorHandler waft_set_error_handler (WaftErrorHandler handler);
 
-void              waft_error             (const char *fmt, ...);
+void             waft_error             (const char      *fmt,
+                                         ...);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __WAFT_ERROR_H__ */
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

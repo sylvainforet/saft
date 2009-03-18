@@ -39,7 +39,7 @@ typedef struct _WaftHNode WaftHNode;
 
 struct _WaftHNode
 {
-  WaftHNode    *next;
+  WaftHNode     *next;
   unsigned char *seq;
   unsigned int   count;
 };
@@ -47,7 +47,7 @@ struct _WaftHNode
 
 WaftHNode *waft_hnode_new  (void);
 
-void        waft_hnode_free (WaftHNode *node);
+void       waft_hnode_free (WaftHNode *node);
 
 
 /**************/
@@ -58,41 +58,44 @@ typedef struct _WaftHTable WaftHTable;
 
 struct _WaftHTable
 {
-  WaftHNode   **table;
+  WaftHNode    **table;
   unsigned int   shift;
   unsigned int   size;
   unsigned int   word_size;
 };
 
 
-WaftHTable  *waft_htable_new     (WaftAlphabet   *alphabet,
-                                    unsigned int     word_size);
+WaftHTable*   waft_htable_new     (WaftAlphabet   *alphabet,
+                                   unsigned int    word_size);
 
 void          waft_htable_free    (WaftHTable     *table);
 
 void          waft_htable_clear   (WaftHTable     *table);
 
 void          waft_htable_add_seq (WaftHTable     *table,
-                                    WaftSequence   *seq);
+                                   WaftSequence   *seq);
 
 void          waft_htable_add     (WaftHTable     *table,
-                                    WaftLetter     *start);
+                                   WaftLetter     *start);
 
 unsigned int  waft_htable_hash    (WaftHTable     *table,
-                                    WaftLetter     *start);
+                                   WaftLetter     *start);
 
 int           waft_htable_cmp     (WaftHTable     *table,
-                                    WaftHNode      *node,
-                                    WaftLetter     *start);
+                                   WaftHNode      *node,
+                                   WaftLetter     *start);
 
 unsigned int  waft_htable_d2      (WaftHTable     *tab1,
-                                    WaftHTable     *tab2);
+                                   WaftHTable     *tab2);
 
-WaftHNode   *waft_htable_lookup  (WaftHTable     *table,
-                                    WaftLetter     *start);
+WaftHNode*    waft_htable_lookup  (WaftHTable     *table,
+                                   WaftLetter     *start);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __WAFT_HASH__H__ */
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

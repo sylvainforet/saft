@@ -55,9 +55,9 @@ waft_hnode_free (WaftHNode *node)
 
 WaftHTable*
 waft_htable_new (WaftAlphabet *alphabet,
-                  unsigned int   word_size)
+                 unsigned int  word_size)
 {
-  WaftHTable *table;
+  WaftHTable  *table;
   unsigned int i;
 
   table            = malloc (sizeof (*table));
@@ -101,7 +101,7 @@ waft_htable_free (WaftHTable *table)
 
 void
 waft_htable_add_seq (WaftHTable   *table,
-                      WaftSequence *seq)
+                     WaftSequence *seq)
 {
   unsigned int i;
 
@@ -111,10 +111,10 @@ waft_htable_add_seq (WaftHTable   *table,
 
 void
 waft_htable_add (WaftHTable *table,
-                  WaftLetter *start)
+                 WaftLetter *start)
 {
   const unsigned int idx = waft_htable_hash (table, start);
-  WaftHNode        *tmp;
+  WaftHNode         *tmp;
 
   for (tmp = table->table[idx]; tmp; tmp = tmp->next)
     if (waft_htable_cmp (table, tmp, start))
@@ -145,11 +145,11 @@ waft_htable_hash (WaftHTable *table,
 
 int
 waft_htable_cmp (WaftHTable *table,
-                  WaftHNode  *node,
-                  WaftLetter *start)
+                 WaftHNode  *node,
+                 WaftLetter *start)
 {
   unsigned int i;
-  WaftLetter *tmp = node->seq - 1;
+  WaftLetter  *tmp = node->seq - 1;
 
   --start;
   for (i = 0; i < table->word_size; i++)
@@ -161,12 +161,12 @@ waft_htable_cmp (WaftHTable *table,
 
 unsigned int
 waft_htable_d2 (WaftHTable *tab1,
-                 WaftHTable *tab2)
+                WaftHTable *tab2)
 {
   WaftHNode   *tmp1;
   WaftHNode   *tmp2;
-  unsigned int  i;
-  unsigned int  d2 = 0;
+  unsigned int i;
+  unsigned int d2 = 0;
 
   for (i = 0; i < tab1->size; i++)
     for (tmp1 = tab1->table[i]; tmp1; tmp1 = tmp1->next)
@@ -181,10 +181,10 @@ waft_htable_d2 (WaftHTable *tab1,
 
 WaftHNode*
 waft_htable_lookup (WaftHTable *table,
-                     WaftLetter *start)
+                    WaftLetter *start)
 {
   const unsigned int idx = waft_htable_hash (table, start);
-  WaftHNode        *tmp;
+  WaftHNode         *tmp;
 
   for (tmp = table->table[idx]; tmp; tmp = tmp->next)
     if (waft_htable_cmp (table, tmp, start))
@@ -226,3 +226,6 @@ waft_get_high_bit (unsigned int x)
 
   return r;
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

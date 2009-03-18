@@ -44,7 +44,7 @@ struct _WaftSearchOptions
 
 WaftSearchOptions *waft_search_options_new  (void);
 
-void                waft_search_options_free (WaftSearchOptions *options);
+void               waft_search_options_free (WaftSearchOptions *options);
 
 /**********/
 /* Search */
@@ -59,17 +59,20 @@ struct _WaftSearch
   WaftSequence      *subject;
   WaftHTable        *query_h;
   WaftHTable        *subject_h;
-  unsigned long int   d2;
+  unsigned long int  d2;
 };
 
 WaftSearch *waft_search_new     (void);
 
-void         waft_search_free    (WaftSearch *search);
+void        waft_search_free    (WaftSearch *search);
 
-void         waft_search_process (WaftSearch *search);
+void        waft_search_process (WaftSearch *search);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __WAFT_SEARCH_H__ */
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

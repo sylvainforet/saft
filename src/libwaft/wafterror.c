@@ -25,29 +25,33 @@
 
 
 static void waft_error_handler_default (const char *fmt,
-                                         va_list     ap);
+                                        va_list     ap);
 
 
-WaftErrorHandler waft_error_handler = waft_error_handler_default;
+static WaftErrorHandler waft_error_handler = waft_error_handler_default;
 
 
 WaftErrorHandler
 waft_set_error_handler (WaftErrorHandler handler)
 {
-  WaftErrorHandler ret = waft_error_handler;
+  WaftErrorHandler old;
+ 
+  old = waft_error_handler;
   waft_error_handler = handler;
-  return ret;
+
+  return old;
 }
 
 void
-waft_error (const char *fmt, ...)
+waft_error (const char *fmt,
+            ...)
 {
   va_list ap;
 
   va_start(ap, fmt);
 
   if (waft_error_handler)
-    (waft_error_handler)(fmt, ap);
+    (waft_error_handler) (fmt, ap);
 
   va_end(ap);
 }
@@ -55,9 +59,12 @@ waft_error (const char *fmt, ...)
 
 static void
 waft_error_handler_default (const char *fmt,
-                             va_list     ap)
+                            va_list     ap)
 {
   fprintf (stderr, "[ERROR] ");
   vfprintf (stderr, fmt, ap);
   fprintf (stderr, ".\n");
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

@@ -39,25 +39,28 @@ struct _WaftFasta
   char *seq;
 };
 
-typedef int    (*WaftFastaIterFunc) (WaftFasta        *fasta,
-                                      void              *data);
+typedef int   (*WaftFastaIterFunc) (WaftFasta         *fasta,
+                                    void              *data);
 
 WaftFasta*    waft_fasta_new       (void);
 
-void           waft_fasta_free      (WaftFasta        *fasta);
+void          waft_fasta_free      (WaftFasta         *fasta);
 
 WaftFasta**   waft_fasta_read      (const char        *filename,
-                                      unsigned int      *n);
+                                    unsigned int      *n);
 
-void           waft_fasta_iter      (const char        *filename,
-                                      WaftFastaIterFunc func,
-                                      void              *data);
+void          waft_fasta_iter      (const char        *filename,
+                                    WaftFastaIterFunc  func,
+                                    void              *data);
 
-WaftSequence* waft_fasta_to_seq    (WaftFasta        *fasta,
-                                      WaftAlphabet     *alphabet);
+WaftSequence* waft_fasta_to_seq    (WaftFasta         *fasta,
+                                    WaftAlphabet      *alphabet);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __WAFT_FASTA_H__ */
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

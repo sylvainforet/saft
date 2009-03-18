@@ -72,14 +72,17 @@ waft_search_process (WaftSearch *search)
   if (!search->query_h)
     {
       search->query_h = waft_htable_new (search->query->alphabet,
-                                          search->options->word_size);
+                                         search->options->word_size);
       waft_htable_add_seq (search->query_h, search->query);
     }
   if (!search->subject_h)
     {
       search->subject_h = waft_htable_new (search->query->alphabet,
-                                            search->options->word_size);
+                                           search->options->word_size);
       waft_htable_add_seq (search->subject_h, search->subject);
     }
   search->d2 = waft_htable_d2 (search->subject_h, search->query_h);
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */

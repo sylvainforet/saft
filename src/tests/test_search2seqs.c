@@ -31,8 +31,8 @@ main (int argc, char **argv)
 {
   WaftFasta   **seqs;
   WaftFasta   **tmp;
-  unsigned int   word_size;
-  unsigned int   n;
+  unsigned int  word_size;
+  unsigned int  n;
 
   if (argc < 2)
     {
@@ -78,3 +78,6 @@ main (int argc, char **argv)
 
   return 0;
 }
+
+/* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
+ */
