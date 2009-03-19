@@ -1,4 +1,4 @@
-/* waftfasta.h
+/* saftfasta.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,10 +19,10 @@
  *
  */
 
-#ifndef __WAFT_FASTA_H__
-#define __WAFT_FASTA_H__
+#ifndef __SAFT_FASTA_H__
+#define __SAFT_FASTA_H__
 
-#include <waftsequence.h>
+#include <saftsequence.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -31,36 +31,36 @@ extern "C"
 
 /* A sequence read from a fasta formated file */
 
-typedef struct _WaftFasta WaftFasta;
+typedef struct _SaftFasta SaftFasta;
 
-struct _WaftFasta
+struct _SaftFasta
 {
   char *name;
   char *seq;
 };
 
-typedef int   (*WaftFastaIterFunc) (WaftFasta         *fasta,
+typedef int   (*SaftFastaIterFunc) (SaftFasta         *fasta,
                                     void              *data);
 
-WaftFasta*    waft_fasta_new       (void);
+SaftFasta*    saft_fasta_new       (void);
 
-void          waft_fasta_free      (WaftFasta         *fasta);
+void          saft_fasta_free      (SaftFasta         *fasta);
 
-WaftFasta**   waft_fasta_read      (const char        *filename,
+SaftFasta**   saft_fasta_read      (const char        *filename,
                                     unsigned int      *n);
 
-void          waft_fasta_iter      (const char        *filename,
-                                    WaftFastaIterFunc  func,
+void          saft_fasta_iter      (const char        *filename,
+                                    SaftFastaIterFunc  func,
                                     void              *data);
 
-WaftSequence* waft_fasta_to_seq    (WaftFasta         *fasta,
-                                    WaftAlphabet      *alphabet);
+SaftSequence* saft_fasta_to_seq    (SaftFasta         *fasta,
+                                    SaftAlphabet      *alphabet);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __WAFT_FASTA_H__ */
+#endif /* __SAFT_FASTA_H__ */
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */

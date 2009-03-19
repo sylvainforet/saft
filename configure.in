@@ -1,7 +1,7 @@
 AC_PREREQ(2.61)
-AC_INIT([waft], [0.0.1], [sylvain.foret@anu.edu.au])
+AC_INIT([saft], [0.0.1], [sylvain.foret@anu.edu.au])
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
-AC_CONFIG_SRCDIR([src/libwaft/waftsequence.h])
+AC_CONFIG_SRCDIR([src/libsaft/saftsequence.h])
 AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
@@ -37,6 +37,6 @@ AC_CHECK_FUNCS([strdup])
 AC_OUTPUT([
 	Makefile
 	src/Makefile
-	src/waft/Makefile
-	src/libwaft/Makefile
+	src/saft/Makefile
+	src/libsaft/Makefile
 	src/tests/Makefile])

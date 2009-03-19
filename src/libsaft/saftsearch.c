@@ -1,4 +1,4 @@
-/* waftsearch.c
+/* saftsearch.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,13 +22,13 @@
 
 #include <stdlib.h>
 
-#include "waftsearch.h"
+#include "saftsearch.h"
 
 
-WaftSearchOptions*
-waft_search_options_new ()
+SaftSearchOptions*
+saft_search_options_new ()
 {
-  WaftSearchOptions *options;
+  SaftSearchOptions *options;
 
   options            = malloc (sizeof (*options));
   options->word_size = 0;
@@ -37,16 +37,16 @@ waft_search_options_new ()
 }
 
 void
-waft_search_options_free (WaftSearchOptions *options)
+saft_search_options_free (SaftSearchOptions *options)
 {
   if (options)
     free (options);
 }
 
-WaftSearch*
-waft_search_new ()
+SaftSearch*
+saft_search_new ()
 {
-  WaftSearch *search;
+  SaftSearch *search;
 
   search            = malloc (sizeof (*search));
   search->options   = NULL;
@@ -59,21 +59,21 @@ waft_search_new ()
 }
 
 void
-waft_search_free (WaftSearch *search)
+saft_search_free (SaftSearch *search)
 {
   if (search)
     free (search);
 }
 
 void
-waft_search_process (WaftSearch *search)
+saft_search_process (SaftSearch *search)
 {
   if (!search->htable)
-    search->htable = waft_htable_new (search->query->alphabet,
+    search->htable = saft_htable_new (search->query->alphabet,
                                       search->options->word_size);
-  waft_htable_add_query (search->htable, search->query);
-  waft_htable_add_subject (search->htable, search->subject);
-  search->d2 = waft_htable_d2 (search->htable);
+  saft_htable_add_query (search->htable, search->query);
+  saft_htable_add_subject (search->htable, search->subject);
+  search->d2 = saft_htable_d2 (search->htable);
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:

@@ -22,57 +22,57 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "wafterror.h"
-#include "waftfasta.h"
-#include "waftsearch.h"
+#include "safterror.h"
+#include "saftfasta.h"
+#include "saftsearch.h"
 
 int
 main (int argc, char **argv)
 {
-  WaftFasta   **seqs;
-  WaftFasta   **tmp;
+  SaftFasta   **seqs;
+  SaftFasta   **tmp;
   unsigned int  word_size;
   unsigned int  n;
 
   if (argc < 3)
     {
-      waft_error ("Usage: %s FASTA_FILE WORD_SIZE", argv[0]);
+      saft_error ("Usage: %s FASTA_FILE WORD_SIZE", argv[0]);
       return 1;
     }
 
-  seqs = waft_fasta_read (argv[1], &n);
+  seqs = saft_fasta_read (argv[1], &n);
   word_size = atoi (argv[2]);
 
   if (n < 2)
     {
-      waft_error ("The fasta file must contain at least two sequences");
+      saft_error ("The fasta file must contain at least two sequences");
       return 1;
     }
   else
     {
-      WaftSequence      *s1  = waft_fasta_to_seq (seqs[0], &WaftAlphabetDNA);
-      WaftSequence      *s2  = waft_fasta_to_seq (seqs[1], &WaftAlphabetDNA);
-      WaftSearchOptions *opt = waft_search_options_new ();
-      WaftSearch        *s   = waft_search_new ();
+      SaftSequence      *s1  = saft_fasta_to_seq (seqs[0], &SaftAlphabetDNA);
+      SaftSequence      *s2  = saft_fasta_to_seq (seqs[1], &SaftAlphabetDNA);
+      SaftSearchOptions *opt = saft_search_options_new ();
+      SaftSearch        *s   = saft_search_new ();
 
       opt->word_size = word_size;
       s->options     = opt;
       s->query       = s1;
       s->subject     = s2;
 
-      waft_search_process (s);
+      saft_search_process (s);
       printf ("D2 == %ld\n", s->d2);
 
-      waft_sequence_free (s1);
-      waft_sequence_free (s2);
-      waft_search_options_free (opt);
-      waft_htable_free (s->htable);
-      waft_search_free (s);
+      saft_sequence_free (s1);
+      saft_sequence_free (s2);
+      saft_search_options_free (opt);
+      saft_htable_free (s->htable);
+      saft_search_free (s);
     }
 
   tmp = seqs - 1;
   while (*++tmp)
-    waft_fasta_free (*tmp);
+    saft_fasta_free (*tmp);
   free (seqs);
 
   return 0;

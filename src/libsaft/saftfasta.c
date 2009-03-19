@@ -1,4 +1,4 @@
-/* waftfasta.c
+/* saftfasta.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,27 +26,27 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "wafterror.h"
-#include "waftfasta.h"
+#include "safterror.h"
+#include "saftfasta.h"
 
 
-typedef struct _WaftFastaParseData WaftFastaParseData;
+typedef struct _SaftFastaParseData SaftFastaParseData;
 
-struct _WaftFastaParseData
+struct _SaftFastaParseData
 {
-  WaftFasta **seqs;
+  SaftFasta **seqs;
   int         idx;
   int         alloc;
 };
 
-static int waft_fasta_append (WaftFasta          *fasta,
-                              WaftFastaParseData *data);
+static int saft_fasta_append (SaftFasta          *fasta,
+                              SaftFastaParseData *data);
 
 
-WaftFasta*
-waft_fasta_new ()
+SaftFasta*
+saft_fasta_new ()
 {
-  WaftFasta *fasta;
+  SaftFasta *fasta;
 
   fasta       = malloc (sizeof (*fasta));
   fasta->name = NULL;
@@ -56,7 +56,7 @@ waft_fasta_new ()
 }
 
 void
-waft_fasta_free (WaftFasta *fasta)
+saft_fasta_free (SaftFasta *fasta)
 {
   if (fasta)
     {
@@ -81,18 +81,18 @@ waft_fasta_free (WaftFasta *fasta)
 #define CAP_STR(str, buf_idx, chk_idx) ENSURE (str, buf_idx, chk_idx, 1); \
                                        (str)[(buf_idx)] = '\0';
 
-WaftFasta**
-waft_fasta_read (const char   *filename,
+SaftFasta**
+saft_fasta_read (const char   *filename,
                  unsigned int *n)
 {
-  WaftFastaParseData data;
+  SaftFastaParseData data;
 
   data.seqs  = NULL;
   data.idx   = -1;
   data.alloc =  0;
 
-  waft_fasta_iter (filename,
-                   (WaftFastaIterFunc)waft_fasta_append,
+  saft_fasta_iter (filename,
+                   (SaftFastaIterFunc)saft_fasta_append,
                    &data);
 
   ENSURE (data.seqs, data.idx, data.alloc, 1);
@@ -104,12 +104,12 @@ waft_fasta_read (const char   *filename,
 }
 
 static int
-waft_fasta_append (WaftFasta          *fasta,
-                   WaftFastaParseData *data)
+saft_fasta_append (SaftFasta          *fasta,
+                   SaftFastaParseData *data)
 {
-  WaftFasta *seq_new;
+  SaftFasta *seq_new;
 
-  seq_new       = waft_fasta_new ();
+  seq_new       = saft_fasta_new ();
   seq_new->name = fasta->name;
   seq_new->seq  = fasta->seq;
   fasta->name   = NULL;
@@ -122,12 +122,12 @@ waft_fasta_append (WaftFasta          *fasta,
 }
 
 void
-waft_fasta_iter (const char        *filename,
-                 WaftFastaIterFunc  func,
+saft_fasta_iter (const char        *filename,
+                 SaftFastaIterFunc  func,
                  void              *data)
 {
   char        buffer[READ_CHUNK];
-  WaftFasta *seq              = NULL;
+  SaftFasta *seq              = NULL;
   int         cur_name_alloc   =  0;
   int         cur_name_idx     = -1;
   int         cur_seq_alloc    =  0;
@@ -138,7 +138,7 @@ waft_fasta_iter (const char        *filename,
 
   if ((in = open (filename, O_RDONLY | O_NONBLOCK)) == -1)
     {
-      waft_error ("Couldn't open `%s'", filename);
+      saft_error ("Couldn't open `%s'", filename);
       return;
     }
 
@@ -165,17 +165,17 @@ waft_fasta_iter (const char        *filename,
                   CAP_STR (seq->seq, cur_seq_idx, cur_seq_alloc);
                   if (!func (seq, data))
                     {
-                      waft_fasta_free (seq);
+                      saft_fasta_free (seq);
                       close(in);
                       return;
                     }
-                  waft_fasta_free (seq);
+                  saft_fasta_free (seq);
                 }
               cur_name_alloc =  0;
               cur_name_idx   = -1;
               cur_seq_alloc  =  0;
               cur_seq_idx    = -1;
-              seq            = waft_fasta_new ();
+              seq            = saft_fasta_new ();
               in_header      = 1;
             }
           else
@@ -209,26 +209,26 @@ waft_fasta_iter (const char        *filename,
         }
     }
   if (status == -1)
-    waft_error ("An IO error occured while reading `%s'", filename);
+    saft_error ("An IO error occured while reading `%s'", filename);
   if (seq)
     {
       CAP_STR (seq->name, cur_name_idx, cur_name_alloc);
       CAP_STR (seq->seq, cur_seq_idx, cur_seq_alloc);
       func (seq, data);
-      waft_fasta_free (seq);
+      saft_fasta_free (seq);
     }
   close (in);
 }
 
-WaftSequence*
-waft_fasta_to_seq (WaftFasta    *fasta,
-                    WaftAlphabet *alphabet)
+SaftSequence*
+saft_fasta_to_seq (SaftFasta    *fasta,
+                    SaftAlphabet *alphabet)
 {
-  WaftSequence  *seq;
+  SaftSequence  *seq;
   unsigned char *tmp_f;
-  WaftLetter    *tmp_s;
+  SaftLetter    *tmp_s;
 
-  seq           = waft_sequence_new ();
+  seq           = saft_sequence_new ();
   seq->alphabet = alphabet;
   seq->name     = strdup (fasta->name);
   seq->size     = strlen (fasta->seq);
@@ -240,7 +240,7 @@ waft_fasta_to_seq (WaftFasta    *fasta,
     {
       *++tmp_s = alphabet->codes[*tmp_f++];
       if (*tmp_s == 0)
-        waft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
+        saft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
                     *tmp_s, alphabet->name);
     }
   return seq;

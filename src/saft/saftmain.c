@@ -1,4 +1,4 @@
-/* wafterror.c
+/* saftmain.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,51 +19,15 @@
  *
  */
 
-#include <stdio.h>
 
-#include "wafterror.h"
+#include "safterror.h"
 
-
-static void waft_error_handler_default (const char *fmt,
-                                        va_list     ap);
-
-
-static WaftErrorHandler waft_error_handler = waft_error_handler_default;
-
-
-WaftErrorHandler
-waft_set_error_handler (WaftErrorHandler handler)
+int
+main (int argc, char **argv)
 {
-  WaftErrorHandler old;
- 
-  old = waft_error_handler;
-  waft_error_handler = handler;
+  saft_error ("Nothing is implemented yet ...");
 
-  return old;
-}
-
-void
-waft_error (const char *fmt,
-            ...)
-{
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  if (waft_error_handler)
-    (waft_error_handler) (fmt, ap);
-
-  va_end(ap);
-}
-
-
-static void
-waft_error_handler_default (const char *fmt,
-                            va_list     ap)
-{
-  fprintf (stderr, "[ERROR] ");
-  vfprintf (stderr, fmt, ap);
-  fprintf (stderr, ".\n");
+  return 0;
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:

@@ -1,4 +1,4 @@
-/* waftsearch.h
+/* saftsearch.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,11 @@
  *
  */
 
-#ifndef __WAFT_SEARCH_H__
-#define __WAFT_SEARCH_H__
+#ifndef __SAFT_SEARCH_H__
+#define __SAFT_SEARCH_H__
 
 
-#include <wafthash.h>
+#include <safthash.h>
 
 
 #ifdef __cplusplus
@@ -35,43 +35,43 @@ extern "C"
 /* Search Options */
 /******************/
 
-typedef struct _WaftSearchOptions WaftSearchOptions;
+typedef struct _SaftSearchOptions SaftSearchOptions;
 
-struct _WaftSearchOptions
+struct _SaftSearchOptions
 {
   unsigned int word_size;
 };
 
-WaftSearchOptions *waft_search_options_new  (void);
+SaftSearchOptions *saft_search_options_new  (void);
 
-void               waft_search_options_free (WaftSearchOptions *options);
+void               saft_search_options_free (SaftSearchOptions *options);
 
 /**********/
 /* Search */
 /**********/
 
-typedef struct _WaftSearch WaftSearch;
+typedef struct _SaftSearch SaftSearch;
 
-struct _WaftSearch
+struct _SaftSearch
 {
-  WaftSearchOptions *options;
-  WaftSequence      *query;
-  WaftSequence      *subject;
-  WaftHTable        *htable;
+  SaftSearchOptions *options;
+  SaftSequence      *query;
+  SaftSequence      *subject;
+  SaftHTable        *htable;
   unsigned long int  d2;
 };
 
-WaftSearch *waft_search_new     (void);
+SaftSearch *saft_search_new     (void);
 
-void        waft_search_free    (WaftSearch *search);
+void        saft_search_free    (SaftSearch *search);
 
-void        waft_search_process (WaftSearch *search);
+void        saft_search_process (SaftSearch *search);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __WAFT_SEARCH_H__ */
+#endif /* __SAFT_SEARCH_H__ */
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */

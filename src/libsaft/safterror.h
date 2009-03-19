@@ -1,4 +1,4 @@
-/* wafterror.h
+/* safterror.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __WAFT_ERROR_H__
-#define __WAFT_ERROR_H__
+#ifndef __SAFT_ERROR_H__
+#define __SAFT_ERROR_H__
 
 #include <stdarg.h>
 
@@ -29,19 +29,19 @@ extern "C"
 {
 #endif
 
-typedef void     (*WaftErrorHandler)    (const char      *fmt,
+typedef void     (*SaftErrorHandler)    (const char      *fmt,
                                          va_list          ap);
 
-WaftErrorHandler waft_set_error_handler (WaftErrorHandler handler);
+SaftErrorHandler saft_set_error_handler (SaftErrorHandler handler);
 
-void             waft_error             (const char      *fmt,
+void             saft_error             (const char      *fmt,
                                          ...);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __WAFT_ERROR_H__ */
+#endif /* __SAFT_ERROR_H__ */
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */

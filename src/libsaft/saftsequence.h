@@ -1,4 +1,4 @@
-/* waftsequence.h
+/* saftsequence.h
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __WAFT_SEQUENCE_H__
-#define __WAFT_SEQUENCE_H__
+#ifndef __SAFT_SEQUENCE_H__
+#define __SAFT_SEQUENCE_H__
 
 #ifdef __cplusplus
 extern "C"
@@ -31,15 +31,15 @@ extern "C"
 /* Letter */
 /**********/
 
-typedef unsigned char WaftLetter;
+typedef unsigned char SaftLetter;
 
 /************/
 /* Alphabet */
 /************/
 
-typedef struct _WaftAlphabet WaftAlphabet;
+typedef struct _SaftAlphabet SaftAlphabet;
 
-struct _WaftAlphabet
+struct _SaftAlphabet
 {
   char         *name;
   /* The letters for printing, indexed as in codes
@@ -49,55 +49,55 @@ struct _WaftAlphabet
   /* The codes indexing the letters
    * Letters of the aphabet start at 1
    * The 0 is for all the unknown codes */
-  WaftLetter    codes[256];
+  SaftLetter    codes[256];
   unsigned int  size;
 };
 
-WaftAlphabet* waft_alphabet_new  (void);
+SaftAlphabet* saft_alphabet_new  (void);
 
-void          waft_alphabet_free (WaftAlphabet *alphabet);
+void          saft_alphabet_free (SaftAlphabet *alphabet);
 
 /* Statically predefined alphabets */
 
-extern WaftAlphabet WaftAlphabetDNA;
-extern WaftAlphabet WaftAlphabetProtein;
+extern SaftAlphabet SaftAlphabetDNA;
+extern SaftAlphabet SaftAlphabetProtein;
 
 /************/
 /* Sequence */
 /************/
 
-typedef struct _WaftSequence WaftSequence;
+typedef struct _SaftSequence SaftSequence;
 
-struct _WaftSequence
+struct _SaftSequence
 {
   char          *name;
-  WaftLetter    *seq;
-  WaftAlphabet  *alphabet;
+  SaftLetter    *seq;
+  SaftAlphabet  *alphabet;
   unsigned int   size;
 };
 
-WaftSequence* waft_sequence_new       (void);
+SaftSequence* saft_sequence_new       (void);
 
-void          waft_sequence_free      (WaftSequence *seq);
+void          saft_sequence_free      (SaftSequence *seq);
 
-char*         waft_sequence_to_string (WaftSequence *seq);
+char*         saft_sequence_to_string (SaftSequence *seq);
 
 /*************/
 /* Sequences */
 /*************/
 
-typedef int (*WaftSeqIterFunc)  (WaftSequence   *seq,
+typedef int (*SaftSeqIterFunc)  (SaftSequence   *seq,
                                  void           *data);
 
-void        waft_sequences_iter (WaftSequence  **sequences,
-                                 WaftSeqIterFunc func,
+void        saft_sequences_iter (SaftSequence  **sequences,
+                                 SaftSeqIterFunc func,
                                  void           *data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __WAFT_SEQUENCE_H__ */
+#endif /* __SAFT_SEQUENCE_H__ */
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */

@@ -1,4 +1,4 @@
-/* wafthash.c
+/* safthash.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,18 +23,18 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "wafthash.h"
+#include "safthash.h"
 
 
-#define WAFT_HTABLE_SIZE 1024
+#define SAFT_HTABLE_SIZE 1024
 
-static unsigned int waft_get_high_bit (unsigned int x);
+static unsigned int saft_get_high_bit (unsigned int x);
 
 
-WaftHNode*
-waft_hnode_new ()
+SaftHNode*
+saft_hnode_new ()
 {
-  WaftHNode *node;
+  SaftHNode *node;
 
   node                = malloc (sizeof (*node));
   node->seq           = NULL;
@@ -46,25 +46,25 @@ waft_hnode_new ()
 }
 
 void
-waft_hnode_free (WaftHNode *node)
+saft_hnode_free (SaftHNode *node)
 {
   if (node)
     {
       if (node->next)
-        waft_hnode_free (node->next);
+        saft_hnode_free (node->next);
       free (node);
     }
 }
 
-WaftHTable*
-waft_htable_new (WaftAlphabet *alphabet,
+SaftHTable*
+saft_htable_new (SaftAlphabet *alphabet,
                  unsigned int  word_size)
 {
-  WaftHTable *table;
+  SaftHTable *table;
 
   table            = malloc (sizeof (*table));
-  table->size      = WAFT_HTABLE_SIZE;
-  table->shift     = waft_get_high_bit (alphabet->size) + 1;
+  table->size      = SAFT_HTABLE_SIZE;
+  table->shift     = saft_get_high_bit (alphabet->size) + 1;
   table->table     = malloc (sizeof (*table->table) * table->size);
   table->word_size = word_size;
   table->hmask     = ~0;
@@ -78,37 +78,37 @@ waft_htable_new (WaftAlphabet *alphabet,
 }
 
 void
-waft_htable_clear (WaftHTable *table)
+saft_htable_clear (SaftHTable *table)
 {
   unsigned int i;
 
   if (table)
     {
       for (i = 0; i < table->size; i++)
-        waft_hnode_free (table->table[i]);
+        saft_hnode_free (table->table[i]);
       memset (table->table, 0, sizeof(*table->table));
     }
 }
 
 void
-waft_htable_free (WaftHTable *table)
+saft_htable_free (SaftHTable *table)
 {
   unsigned int i;
 
   if (table)
     {
       for (i = 0; i < table->size; i++)
-        waft_hnode_free (table->table[i]);
+        saft_hnode_free (table->table[i]);
       free (table->table);
       free (table);
     }
 }
 
 void
-waft_htable_add_query (WaftHTable   *table,
-                       WaftSequence *seq)
+saft_htable_add_query (SaftHTable   *table,
+                       SaftSequence *seq)
 {
-  WaftLetter  *start;
+  SaftLetter  *start;
   unsigned int i;
   unsigned int hash = 0;
 
@@ -123,19 +123,19 @@ waft_htable_add_query (WaftHTable   *table,
   i     = table->word_size - 1;
   do
     {
-      WaftHNode *node;
+      SaftHNode *node;
 
       hash <<= table->shift;
       hash  |= seq->seq[i];
       hash  &= table->hmask;
 
       for (node = table->table[hash]; node; node = node->next)
-        if (waft_htable_cmp (table, node, start))
+        if (saft_htable_cmp (table, node, start))
           {
             node->count_query++;
             goto found;
           }
-      node               = waft_hnode_new ();
+      node               = saft_hnode_new ();
       node->seq          = start;
       node->count_query  = 1;
       node->next         = table->table[hash];
@@ -148,10 +148,10 @@ found:
 }
 
 void
-waft_htable_add_subject (WaftHTable   *table,
-                         WaftSequence *seq)
+saft_htable_add_subject (SaftHTable   *table,
+                         SaftSequence *seq)
 {
-  WaftLetter  *start;
+  SaftLetter  *start;
   unsigned int i;
   unsigned int hash       = 0;
 
@@ -166,14 +166,14 @@ waft_htable_add_subject (WaftHTable   *table,
   i     = table->word_size - 1;
   do
     {
-      WaftHNode *node;
+      SaftHNode *node;
 
       hash <<= table->shift;
       hash  |= seq->seq[i];
       hash  &= table->hmask;
 
       for (node = table->table[hash]; node; node = node->next)
-        if (waft_htable_cmp (table, node, start))
+        if (saft_htable_cmp (table, node, start))
           {
             node->count_subject++;
             break;
@@ -185,21 +185,21 @@ waft_htable_add_subject (WaftHTable   *table,
 }
 
 void
-waft_htable_clear_subject (WaftHTable *table)
+saft_htable_clear_subject (SaftHTable *table)
 {
   unsigned int i;
 
   for (i = 0; i < table->size; i++)
     {
-      WaftHNode *node;
+      SaftHNode *node;
       for (node = table->table[i]; node; node = node->next)
         node->count_subject = 0;
     }
 }
 
 unsigned int
-waft_htable_hash (WaftHTable *table,
-                   WaftLetter *start)
+saft_htable_hash (SaftHTable *table,
+                   SaftLetter *start)
 {
   unsigned int ret = *start;
   unsigned int i;
@@ -207,16 +207,16 @@ waft_htable_hash (WaftHTable *table,
   for (i = 1; i < table->word_size; i++)
     ret = (ret << table->shift) | *++start;
 
-  return ret % WAFT_HTABLE_SIZE;
+  return ret % SAFT_HTABLE_SIZE;
 }
 
 int
-waft_htable_cmp (WaftHTable *table,
-                 WaftHNode  *node,
-                 WaftLetter *start)
+saft_htable_cmp (SaftHTable *table,
+                 SaftHNode  *node,
+                 SaftLetter *start)
 {
   unsigned int i;
-  WaftLetter  *tmp = node->seq - 1;
+  SaftLetter  *tmp = node->seq - 1;
 
   --start;
   for (i = 0; i < table->word_size; i++)
@@ -227,9 +227,9 @@ waft_htable_cmp (WaftHTable *table,
 }
 
 unsigned int
-waft_htable_d2 (WaftHTable *tab)
+saft_htable_d2 (SaftHTable *tab)
 {
-  WaftHNode   *node;
+  SaftHNode   *node;
   unsigned int i;
   unsigned int d2 = 0;
 
@@ -240,15 +240,15 @@ waft_htable_d2 (WaftHTable *tab)
   return d2;
 }
 
-WaftHNode*
-waft_htable_lookup (WaftHTable *table,
-                    WaftLetter *start)
+SaftHNode*
+saft_htable_lookup (SaftHTable *table,
+                    SaftLetter *start)
 {
-  const unsigned int idx = waft_htable_hash (table, start);
-  WaftHNode         *node;
+  const unsigned int idx = saft_htable_hash (table, start);
+  SaftHNode         *node;
 
   for (node = table->table[idx]; node; node = node->next)
-    if (waft_htable_cmp (table, node, start))
+    if (saft_htable_cmp (table, node, start))
       return node;
 
   return NULL;
@@ -258,7 +258,7 @@ waft_htable_lookup (WaftHTable *table,
  * From JJ (Joerg Arndt) www.jjj.de
  */
 static unsigned int
-waft_get_high_bit (unsigned int x)
+saft_get_high_bit (unsigned int x)
 {
   unsigned int r = 0;
 

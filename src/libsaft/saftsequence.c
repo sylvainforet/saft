@@ -1,4 +1,4 @@
-/* waftsequence.c
+/* saftsequence.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,10 +21,10 @@
 
 #include <stdlib.h>
 
-#include "waftsequence.h"
+#include "saftsequence.h"
 
 
-WaftAlphabet WaftAlphabetDNA =
+SaftAlphabet SaftAlphabetDNA =
 {
   .name    = "DNA",
   .letters = "NATGC",
@@ -44,7 +44,7 @@ WaftAlphabet WaftAlphabetDNA =
     }
 };
 
-WaftAlphabet WaftAlphabetProtein =
+SaftAlphabet SaftAlphabetProtein =
 {
   .name    = "Protein",
   .letters = "XACDEFGHIKLMNPQRSTVWY",
@@ -96,10 +96,10 @@ WaftAlphabet WaftAlphabetProtein =
     }
 };
 
-WaftAlphabet*
-waft_alphabet_new ()
+SaftAlphabet*
+saft_alphabet_new ()
 {
-  WaftAlphabet *alphabet;
+  SaftAlphabet *alphabet;
 
   alphabet          = malloc (sizeof (*alphabet));
   alphabet->name    = NULL;
@@ -110,7 +110,7 @@ waft_alphabet_new ()
 }
 
 void
-waft_alphabet_free (WaftAlphabet *alphabet)
+saft_alphabet_free (SaftAlphabet *alphabet)
 {
   if (alphabet)
     {
@@ -122,10 +122,10 @@ waft_alphabet_free (WaftAlphabet *alphabet)
     }
 }
 
-WaftSequence*
-waft_sequence_new (void)
+SaftSequence*
+saft_sequence_new (void)
 {
-  WaftSequence *seq;
+  SaftSequence *seq;
 
   seq           = malloc (sizeof (*seq));
   seq->name     = NULL;
@@ -137,7 +137,7 @@ waft_sequence_new (void)
 }
 
 void
-waft_sequence_free (WaftSequence *seq)
+saft_sequence_free (SaftSequence *seq)
 {
   if (seq)
     {
@@ -150,7 +150,7 @@ waft_sequence_free (WaftSequence *seq)
 }
 
 char*
-waft_sequence_to_string (WaftSequence *seq)
+saft_sequence_to_string (SaftSequence *seq)
 {
   char*        ret;
   unsigned int i;
@@ -164,8 +164,8 @@ waft_sequence_to_string (WaftSequence *seq)
 }
 
 void
-waft_sequences_iter (WaftSequence  **sequences,
-                      WaftSeqIterFunc func,
+saft_sequences_iter (SaftSequence  **sequences,
+                      SaftSeqIterFunc func,
                       void            *data)
 {
   while (*sequences)
