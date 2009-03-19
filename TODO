@@ -1,2 +1,8 @@
 BUGS:
-+ fix the case when the word size is larger than the sequences.
++ `N', `X' and other `0' characters must be handled properly.
+  One possible solution could be to to split the sequences in segments.
+  This could also be useful for the filtering.
+
+FEATURES:
++ Filtering (see how blast does it).
++ The WaftHNodes could be allocated by blocks instead on one by one.

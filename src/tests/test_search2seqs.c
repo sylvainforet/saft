@@ -34,14 +34,14 @@ main (int argc, char **argv)
   unsigned int  word_size;
   unsigned int  n;
 
-  if (argc < 2)
+  if (argc < 3)
     {
-      waft_error ("A fasta file and a word size need to be given as argument");
+      waft_error ("Usage: %s FASTA_FILE WORD_SIZE", argv[0]);
       return 1;
     }
 
-  word_size = atoi (argv[2]);
   seqs = waft_fasta_read (argv[1], &n);
+  word_size = atoi (argv[2]);
 
   if (n < 2)
     {
@@ -66,8 +66,7 @@ main (int argc, char **argv)
       waft_sequence_free (s1);
       waft_sequence_free (s2);
       waft_search_options_free (opt);
-      waft_htable_free (s->query_h);
-      waft_htable_free (s->subject_h);
+      waft_htable_free (s->htable);
       waft_search_free (s);
     }
 

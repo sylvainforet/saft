@@ -23,7 +23,7 @@
 #define __WAFT_SEARCH_H__
 
 
-#include "wafthash.h"
+#include <wafthash.h>
 
 
 #ifdef __cplusplus
@@ -57,8 +57,7 @@ struct _WaftSearch
   WaftSearchOptions *options;
   WaftSequence      *query;
   WaftSequence      *subject;
-  WaftHTable        *query_h;
-  WaftHTable        *subject_h;
+  WaftHTable        *htable;
   unsigned long int  d2;
 };
 

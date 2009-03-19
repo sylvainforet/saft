@@ -22,7 +22,7 @@
 #ifndef __WAFT_FASTA_H__
 #define __WAFT_FASTA_H__
 
-#include "waftsequence.h"
+#include <waftsequence.h>
 
 #ifdef __cplusplus
 extern "C"

@@ -23,7 +23,7 @@
 #define __WAFT_HASH__H__
 
 
-#include "waftsequence.h"
+#include <waftsequence.h>
 
 
 #ifdef __cplusplus
@@ -40,8 +40,9 @@ typedef struct _WaftHNode WaftHNode;
 struct _WaftHNode
 {
   WaftHNode     *next;
-  unsigned char *seq;
-  unsigned int   count;
+  WaftLetter    *seq;
+  unsigned int   count_query;
+  unsigned int   count_subject;
 };
 
 
@@ -62,34 +63,36 @@ struct _WaftHTable
   unsigned int   shift;
   unsigned int   size;
   unsigned int   word_size;
+  unsigned int   hmask;
 };
 
 
-WaftHTable*   waft_htable_new     (WaftAlphabet   *alphabet,
-                                   unsigned int    word_size);
+WaftHTable*   waft_htable_new            (WaftAlphabet   *alphabet,
+                                          unsigned int    word_size);
 
-void          waft_htable_free    (WaftHTable     *table);
+void          waft_htable_free           (WaftHTable     *table);
 
-void          waft_htable_clear   (WaftHTable     *table);
+void          waft_htable_clear          (WaftHTable     *table);
 
-void          waft_htable_add_seq (WaftHTable     *table,
-                                   WaftSequence   *seq);
+void          waft_htable_add_query      (WaftHTable     *table,
+                                          WaftSequence   *seq);
 
-void          waft_htable_add     (WaftHTable     *table,
-                                   WaftLetter     *start);
+void          waft_htable_add_subject    (WaftHTable     *table,
+                                          WaftSequence   *seq);
 
-unsigned int  waft_htable_hash    (WaftHTable     *table,
-                                   WaftLetter     *start);
+void          waft_htable_clear_subject  (WaftHTable     *table);
 
-int           waft_htable_cmp     (WaftHTable     *table,
-                                   WaftHNode      *node,
-                                   WaftLetter     *start);
+unsigned int  waft_htable_hash           (WaftHTable     *table,
+                                          WaftLetter     *start);
 
-unsigned int  waft_htable_d2      (WaftHTable     *tab1,
-                                   WaftHTable     *tab2);
+int           waft_htable_cmp            (WaftHTable     *table,
+                                          WaftHNode      *node,
+                                          WaftLetter     *start);
 
-WaftHNode*    waft_htable_lookup  (WaftHTable     *table,
-                                   WaftLetter     *start);
+unsigned int  waft_htable_d2             (WaftHTable     *tab);
+
+WaftHNode*    waft_htable_lookup         (WaftHTable     *table,
+                                          WaftLetter     *start);
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@
 #ifndef __WAFT_ERROR_H__
 #define __WAFT_ERROR_H__
 
-#include "stdarg.h"
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C"

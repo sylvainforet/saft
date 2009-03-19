@@ -20,6 +20,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "wafthash.h"
 
@@ -34,10 +36,11 @@ waft_hnode_new ()
 {
   WaftHNode *node;
 
-  node        = malloc (sizeof (*node));
-  node->seq   = NULL;
-  node->next  = NULL;
-  node->count = 0;
+  node                = malloc (sizeof (*node));
+  node->seq           = NULL;
+  node->next          = NULL;
+  node->count_query   = 0;
+  node->count_subject = 0;
 
   return node;
 }
@@ -57,17 +60,19 @@ WaftHTable*
 waft_htable_new (WaftAlphabet *alphabet,
                  unsigned int  word_size)
 {
-  WaftHTable  *table;
-  unsigned int i;
+  WaftHTable *table;
 
   table            = malloc (sizeof (*table));
   table->size      = WAFT_HTABLE_SIZE;
-  table->shift     = waft_get_high_bit (alphabet->size);
+  table->shift     = waft_get_high_bit (alphabet->size) + 1;
   table->table     = malloc (sizeof (*table->table) * table->size);
   table->word_size = word_size;
+  table->hmask     = ~0;
 
-  for (i = 0; i < table->size; i++)
-    table->table[i] = NULL;
+  if (table->word_size * table->shift < sizeof (table->hmask) * 8)
+    table->hmask >>= sizeof (table->hmask) * 8 - table->word_size * table->shift;
+
+  memset (table->table, 0, sizeof(*table->table));
 
   return table;
 }
@@ -78,11 +83,11 @@ waft_htable_clear (WaftHTable *table)
   unsigned int i;
 
   if (table)
-    for (i = 0; i < table->size; i++)
-      {
+    {
+      for (i = 0; i < table->size; i++)
         waft_hnode_free (table->table[i]);
-        table->table[i] = NULL;
-      }
+      memset (table->table, 0, sizeof(*table->table));
+    }
 }
 
 void
@@ -100,34 +105,96 @@ waft_htable_free (WaftHTable *table)
 }
 
 void
-waft_htable_add_seq (WaftHTable   *table,
-                     WaftSequence *seq)
+waft_htable_add_query (WaftHTable   *table,
+                       WaftSequence *seq)
 {
+  WaftLetter  *start;
   unsigned int i;
+  unsigned int hash = 0;
 
-  for (i = seq->size - table->word_size + 1; i-- > 0; )
-    waft_htable_add (table, &seq->seq[i]);
+  if (table->word_size > seq->size)
+    return;
+
+  start = seq->seq - 1;
+  for (i = 1; i < table->word_size; i++)
+    hash = (hash << table->shift) | *++start;
+
+  start = seq->seq;
+  i     = table->word_size - 1;
+  do
+    {
+      WaftHNode *node;
+
+      hash <<= table->shift;
+      hash  |= seq->seq[i];
+      hash  &= table->hmask;
+
+      for (node = table->table[hash]; node; node = node->next)
+        if (waft_htable_cmp (table, node, start))
+          {
+            node->count_query++;
+            goto found;
+          }
+      node               = waft_hnode_new ();
+      node->seq          = start;
+      node->count_query  = 1;
+      node->next         = table->table[hash];
+      table->table[hash] = node;
+found:
+      ++i;
+      ++start;
+    }
+  while (i < seq->size);
 }
 
 void
-waft_htable_add (WaftHTable *table,
-                 WaftLetter *start)
+waft_htable_add_subject (WaftHTable   *table,
+                         WaftSequence *seq)
 {
-  const unsigned int idx = waft_htable_hash (table, start);
-  WaftHNode         *tmp;
+  WaftLetter  *start;
+  unsigned int i;
+  unsigned int hash       = 0;
 
-  for (tmp = table->table[idx]; tmp; tmp = tmp->next)
-    if (waft_htable_cmp (table, tmp, start))
-      {
-        tmp->count++;
-        return;
-      }
+  if (table->word_size > seq->size)
+    return;
 
-  tmp               = waft_hnode_new ();
-  tmp->seq          = start;
-  tmp->count        = 1;
-  tmp->next         = table->table[idx];
-  table->table[idx] = tmp;
+  start = seq->seq - 1;
+  for (i = 1; i < table->word_size; i++)
+    hash = (hash << table->shift) | *++start;
+
+  start = seq->seq;
+  i     = table->word_size - 1;
+  do
+    {
+      WaftHNode *node;
+
+      hash <<= table->shift;
+      hash  |= seq->seq[i];
+      hash  &= table->hmask;
+
+      for (node = table->table[hash]; node; node = node->next)
+        if (waft_htable_cmp (table, node, start))
+          {
+            node->count_subject++;
+            break;
+          }
+      ++i;
+      ++start;
+    }
+  while (i < seq->size);
+}
+
+void
+waft_htable_clear_subject (WaftHTable *table)
+{
+  unsigned int i;
+
+  for (i = 0; i < table->size; i++)
+    {
+      WaftHNode *node;
+      for (node = table->table[i]; node; node = node->next)
+        node->count_subject = 0;
+    }
 }
 
 unsigned int
@@ -160,21 +227,15 @@ waft_htable_cmp (WaftHTable *table,
 }
 
 unsigned int
-waft_htable_d2 (WaftHTable *tab1,
-                WaftHTable *tab2)
+waft_htable_d2 (WaftHTable *tab)
 {
-  WaftHNode   *tmp1;
-  WaftHNode   *tmp2;
+  WaftHNode   *node;
   unsigned int i;
   unsigned int d2 = 0;
 
-  for (i = 0; i < tab1->size; i++)
-    for (tmp1 = tab1->table[i]; tmp1; tmp1 = tmp1->next)
-      {
-        tmp2 = waft_htable_lookup (tab2, tmp1->seq);
-        if (tmp2)
-          d2 += tmp1->count * tmp2->count;
-      }
+  for (i = 0; i < tab->size; i++)
+    for (node = tab->table[i]; node; node = node->next)
+      d2 += node->count_query * node->count_subject;
 
   return d2;
 }
@@ -184,17 +245,17 @@ waft_htable_lookup (WaftHTable *table,
                     WaftLetter *start)
 {
   const unsigned int idx = waft_htable_hash (table, start);
-  WaftHNode         *tmp;
+  WaftHNode         *node;
 
-  for (tmp = table->table[idx]; tmp; tmp = tmp->next)
-    if (waft_htable_cmp (table, tmp, start))
-      return tmp;
+  for (node = table->table[idx]; node; node = node->next)
+    if (waft_htable_cmp (table, node, start))
+      return node;
 
   return NULL;
 }
 
 /**
- * From JJ (Joerg Arndt)
+ * From JJ (Joerg Arndt) www.jjj.de
  */
 static unsigned int
 waft_get_high_bit (unsigned int x)
