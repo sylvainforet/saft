@@ -31,41 +31,58 @@ extern "C"
 {
 #endif
 
-/******************/
-/* Search Options */
-/******************/
+/**********/
+/* Result */
+/**********/
 
-typedef struct _SaftSearchOptions SaftSearchOptions;
+typedef struct _SaftResult SaftResult;
 
-struct _SaftSearchOptions
+struct _SaftResult
 {
-  unsigned int word_size;
+  SaftResult  *next;
+  unsigned int d2;
+  unsigned int subject_size;
 };
 
-SaftSearchOptions *saft_search_options_new  (void);
+SaftResult* saft_result_new  (void);
 
-void               saft_search_options_free (SaftSearchOptions *options);
+void        saft_result_free (SaftResult *result);
 
 /**********/
 /* Search */
 /**********/
 
+typedef enum
+{
+  SAFT_FREQ_QUERY,
+  SAFT_FREQ_SUBJECTS,
+  SAFT_FREQ_QUERY_SUBJECTS,
+  SAFT_FREQ_UNIFORM, /* FIXME This is a special case of SAFT_FREQ_USER, remove it? */
+  SAFT_FREQ_USER
+}
+SaftFreqType;
+
 typedef struct _SaftSearch SaftSearch;
 
 struct _SaftSearch
 {
-  SaftSearchOptions *options;
-  SaftSequence      *query;
-  SaftSequence      *subject;
-  SaftHTable        *htable;
-  unsigned long int  d2;
+  SaftSequence  *query;
+  SaftHTable    *htable;
+  double        *letters_frequencies;
+  unsigned int  *letters_counts;
+  SaftResult    *results;
+  unsigned int   word_size;
+  SaftFreqType   freq_type;
 };
 
-SaftSearch *saft_search_new     (void);
+SaftSearch* saft_search_new         (SaftSequence *query,
+                                     unsigned int  word_size,
+                                     SaftFreqType  freq_type);
 
-void        saft_search_free    (SaftSearch *search);
+void        saft_search_free        (SaftSearch   *search);
 
-void        saft_search_process (SaftSearch *search);
+void        saft_search_add_subject (SaftSearch   *search,
+                                     SaftSequence *seq);
 
 #ifdef __cplusplus
 }

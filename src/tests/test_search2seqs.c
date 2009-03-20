@@ -50,23 +50,14 @@ main (int argc, char **argv)
     }
   else
     {
-      SaftSequence      *s1  = saft_fasta_to_seq (seqs[0], &SaftAlphabetDNA);
-      SaftSequence      *s2  = saft_fasta_to_seq (seqs[1], &SaftAlphabetDNA);
-      SaftSearchOptions *opt = saft_search_options_new ();
-      SaftSearch        *s   = saft_search_new ();
+      SaftSequence *s1 = saft_fasta_to_seq (seqs[0], &SaftAlphabetDNA);
+      SaftSequence *s2 = saft_fasta_to_seq (seqs[1], &SaftAlphabetDNA);
+      SaftSearch   *s  = saft_search_new (s1, word_size, SAFT_FREQ_UNIFORM);
 
-      opt->word_size = word_size;
-      s->options     = opt;
-      s->query       = s1;
-      s->subject     = s2;
+      saft_search_add_subject (s, s2);
+      printf ("D2 == %d\n", s->results->d2);
 
-      saft_search_process (s);
-      printf ("D2 == %ld\n", s->d2);
-
-      saft_sequence_free (s1);
       saft_sequence_free (s2);
-      saft_search_options_free (opt);
-      saft_htable_free (s->htable);
       saft_search_free (s);
     }
 

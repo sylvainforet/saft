@@ -25,35 +25,54 @@
 #include "saftsearch.h"
 
 
-SaftSearchOptions*
-saft_search_options_new ()
+/**********/
+/* Result */
+/**********/
+
+SaftResult*
+saft_result_new ()
 {
-  SaftSearchOptions *options;
+  SaftResult *result;
 
-  options            = malloc (sizeof (*options));
-  options->word_size = 0;
+  result               = malloc (sizeof (*result));
+  result->next         = NULL;
+  result->d2           = 0;
+  result->subject_size = 0;
 
-  return options;
+  return result;
 }
 
 void
-saft_search_options_free (SaftSearchOptions *options)
+saft_result_free (SaftResult *result)
 {
-  if (options)
-    free (options);
+  if (result)
+    {
+      saft_result_free (result->next);
+      free (result);
+    }
 }
 
+/**********/
+/* Search */
+/**********/
+
 SaftSearch*
-saft_search_new ()
+saft_search_new (SaftSequence *query,
+                 unsigned int  word_size,
+                 SaftFreqType  freq_type)
 {
   SaftSearch *search;
 
-  search            = malloc (sizeof (*search));
-  search->options   = NULL;
-  search->query     = NULL;
-  search->subject   = NULL;
-  search->htable    = NULL;
-  search->d2        = 0;
+  search                      = malloc (sizeof (*search));
+  search->query               = query;
+  search->word_size           = word_size;
+  search->freq_type           = freq_type;
+  search->htable              = saft_htable_new (query->alphabet, search->word_size);
+  search->letters_frequencies = malloc (query->alphabet->size * sizeof (*search->letters_frequencies));
+  search->letters_counts      = malloc (query->alphabet->size * sizeof (*search->letters_counts));
+  saft_htable_add_query (search->htable, search->query);
+  /* FIXME Count the query's letters here is freq_type is SAFT_FREQ_QUERY or
+   * SAFT_FREQ_QUERY_SUBJECTS */
 
   return search;
 }
@@ -62,18 +81,36 @@ void
 saft_search_free (SaftSearch *search)
 {
   if (search)
-    free (search);
+    {
+      if (search->query)
+        saft_sequence_free (search->query);
+      if (search->htable)
+        saft_htable_free (search->htable);
+      if (search->letters_frequencies)
+        free (search->letters_frequencies);
+      if (search->letters_counts)
+        free (search->letters_counts);
+      if (search->results)
+        saft_result_free (search->results);
+      free (search);
+    }
 }
 
 void
-saft_search_process (SaftSearch *search)
+saft_search_add_subject (SaftSearch   *search,
+                         SaftSequence *seq)
 {
-  if (!search->htable)
-    search->htable = saft_htable_new (search->query->alphabet,
-                                      search->options->word_size);
-  saft_htable_add_query (search->htable, search->query);
-  saft_htable_add_subject (search->htable, search->subject);
-  search->d2 = saft_htable_d2 (search->htable);
+  SaftResult *result;
+
+  saft_htable_add_subject (search->htable, seq);
+  result               = saft_result_new ();
+  result->d2           = saft_htable_d2 (search->htable);
+  result->subject_size = seq->size;
+  result->next         = search->results;
+  search->results      = result;
+
+  /* FIXME Count the query's letters here is freq_type is SAFT_FREQ_SUBJECTS or
+   * SAFT_FREQ_QUERY_SUBJECTS */
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
