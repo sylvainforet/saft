@@ -20,6 +20,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "saftstats.h"
 
@@ -29,78 +30,62 @@ static double saft_stats_sum_freq_pow (double      *f,
                                        unsigned int sum_pow);
 
 
-double
-saft_stats_mean (unsigned int m,
-                 unsigned int n,
-                 unsigned int k,
-                 double      *f,
-                 unsigned int l)
+SaftStatsContext*
+saft_stats_context_new (unsigned int word_size,
+                        double      *letters_frequencies,
+                        unsigned int n_letters)
 {
-  double mean;
+#define p(freq_pow, sum_pow) saft_stats_sum_freq_pow(letters_frequencies, n_letters, freq_pow, sum_pow)
 
-  mean = m * n * saft_stats_sum_freq_pow (f, l, 2, k);
+  SaftStatsContext *context;
+  int               k = word_size;
+  unsigned int      i;
+  unsigned int      j;
 
-  return mean;
-}
+  context           = malloc (sizeof (*context));
+  context->word_size = word_size;
+  context->p_2_k     = p(2, k);
+  context->cov_crab  = 0;
+  context->cov_diag  = 0;
+  context->cov_ac1   = 0;
+  context->cov_ac2   = 0;
+  context->unif      = 1;
 
-double
-saft_stats_var (unsigned int m,
-                unsigned int n,
-                unsigned int k,
-                double      *f,
-                unsigned int l)
-{
-#define p(freq_pow, sum_pow) saft_stats_sum_freq_pow(f, l, freq_pow, sum_pow)
-  double       sum_var_Yu;
-  double       cov_crab;
-  double       cov_diag;
-  double       cov_ac1;
-  double       cov_ac2;
-  double       f0 = f[0];
-  unsigned int unif;
-  unsigned int i;
-  unsigned int j;
-
-  unif = 1;
-  for (i = 1; i < l; i++)
-    if (f[i] != f0)
+  for (i = 1; i < n_letters; i++)
+    if (letters_frequencies[i] != letters_frequencies[0])
       {
-        unif = 0;
+        context->unif = 0;
         break;
       }
 
-  sum_var_Yu = m * n * (p (2, k) - p (2, 2 * k));
+  context->sum_var_Yu = p (2, k) - p (2, 2 * k);
 
-  cov_crab = 0;
-  if (!unif)
-    {
-      int sm = m;
-      int sn = n;
-      int sk = k;
-      cov_crab = sm * sn * (2 + sm + sn - 4 * sk) *
-          (p(3, k) +
-           2 * p(2, 2) * p(3, 1) *
-           ((p(3, k - 1) - p(2, 2 * (k - 1))) / (p(3, 1) - p(2, 2))) -
-           (2 * sk - 1) * p(2, 2 * k));
-    }
+  if (!context->unif)
+    context->cov_crab = (p(3, k) +
+                         2 * p(2, 2) * p(3, 1) *
+                         ((p(3, k - 1) - p(2, 2 * (k - 1))) / (p(3, 1) - p(2, 2))) -
+                         (2 * k - 1) * p(2, 2 * k));
 
-  if (k == 1)
-    return sum_var_Yu + cov_crab;
+  if (context->word_size == 1)
+    return context;
 
-  cov_diag = 2 * m * n * (p(2, k + 1) * ((1 - p(2, k - 1)) / (1 - p(2, 1))) - (k - 1) * p(2, 2 * k));
+  context->cov_diag = (p(2, k + 1) *
+                      ((1 - p(2, k - 1)) / (1 - p(2, 1))) -
+                      (k - 1) * p(2, 2 * k)) * 2;
 
-  cov_ac1 = 0;
   for (i = 1; i < k; i++)
     for (j = 0; j < i; j++)
       {
         unsigned int nu = (k - j) / (i - j);
         unsigned int ro = (k - j) % (i - j);
 
-        cov_ac1 += (p(2, 2 * j) * p(2 * nu + 3, ro) * p(2 * nu + 1, i - j - ro) - p(2, 2 * k));
+        context->cov_ac1 += (p(2, 2 * j) *
+                            p(2 * nu + 3, ro) *
+                            p(2 * nu + 1, i - j - ro) -
+                            p(2, 2 * k));
       }
-  cov_ac1 *= 4 * m * n;
+  context->cov_ac1 *= 4;
 
-  cov_ac2 = 0;
   for (i = 1; i < k; i++)
     {
       for (j = 1; j < k; j++)
@@ -131,17 +116,59 @@ saft_stats_var (unsigned int m,
                 t++;
               prod2 *= p(t, 1);
             }
-          cov_ac2 += prod1 * prod2;
+          context->cov_ac2 += prod1 * prod2;
         }
     }
-  cov_ac2 -= (k - 1) * (k - 1) * p(2, 2 * k);
-  cov_ac2 *= 2. * m * n;
+  context->cov_ac2 -= (k - 1) * (k - 1) * p(2, 2 * k);
+  context->cov_ac2 *= 2;
 
-  return sum_var_Yu + cov_crab + cov_diag + cov_ac1 + cov_ac2;
+  return context;
+
 #undef p
 }
 
-/* FIXME These should be computed once and for all for a given search */
+void
+saft_stats_context_free (SaftStatsContext *context)
+{
+  if (context)
+    free (context);
+}
+
+double
+saft_stats_mean (SaftStatsContext *context,
+                 unsigned int      query_size,
+                 unsigned int      subject_size)
+{
+  return query_size * subject_size * context->p_2_k;
+}
+
+double
+saft_stats_var (SaftStatsContext *context,
+                unsigned int      query_size,
+                unsigned int      subject_size)
+{
+  double sum_var_Yu;
+  double cov_crab;
+  double cov_diag;
+  double cov_ac1;
+  double cov_ac2;
+  int    m = query_size;
+  int    n = subject_size;
+  int    k = context->word_size;
+
+  sum_var_Yu = m * n * context->sum_var_Yu;
+  cov_crab   = m * n * (n + m - 4 * k + 2) * context->cov_crab;
+
+  if (context->word_size == 1)
+    return sum_var_Yu + cov_crab;
+
+  cov_diag = m * n * context->cov_diag;
+  cov_ac1  = m * n * context->cov_ac1;
+  cov_ac2  = m * n * context->cov_ac2;
+
+  return sum_var_Yu + cov_crab + cov_diag + cov_ac1 + cov_ac2;
+}
+
 static double
 saft_stats_sum_freq_pow (double      *f,
                          unsigned int l,

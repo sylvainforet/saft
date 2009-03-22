@@ -27,17 +27,36 @@ extern "C"
 {
 #endif
 
-double saft_stats_mean (unsigned int m,  /* Query size          */
-                        unsigned int n,  /* Subject size        */
-                        unsigned int k,  /* Word size           */
-                        double      *f,  /* Letters Frequencies */
-                        unsigned int l); /* Alphabet size       */
+typedef struct _SaftStatsContext SaftStatsContext;
 
-double saft_stats_var  (unsigned int m,
-                        unsigned int n,
-                        unsigned int k,
-                        double      *f,
-                        unsigned int l);
+struct _SaftStatsContext
+{
+  double p_2_k;
+
+  double sum_var_Yu;
+  double cov_crab;
+  double cov_diag;
+  double cov_ac1;
+  double cov_ac2;
+
+  unsigned int word_size;
+
+  unsigned int unif: 1;
+};
+
+SaftStatsContext* saft_stats_context_new  (unsigned int word_size,
+                                           double      *letters_frequencies,
+                                           unsigned int n_letters);
+
+void              saft_stats_context_free (SaftStatsContext *context);
+
+double saft_stats_mean (SaftStatsContext *context,
+                        unsigned int      query_size,
+                        unsigned int      subject_size);
+
+double saft_stats_var  (SaftStatsContext *context,
+                        unsigned int      query_size,
+                        unsigned int      subject_size);
 
 #ifdef __cplusplus
 }

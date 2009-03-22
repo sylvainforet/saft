@@ -44,17 +44,16 @@ main (int    argc,
 
       for (j = 0; j < nb_word_sizes; j++)
         {
-          unsigned int word_size = word_sizes[j];
-          double       mean      = saft_stats_mean (seq_size,
-                                                    seq_size,
-                                                    word_size,
-                                                    letters_freqs,
-                                                    alphabet_size);
-          double       var       = saft_stats_var  (seq_size,
-                                                    seq_size,
-                                                    word_size,
-                                                    letters_freqs,
-                                                    alphabet_size);
+          unsigned int      word_size = word_sizes[j];
+          SaftStatsContext *context   = saft_stats_context_new (word_size,
+                                                                letters_freqs,
+                                                                alphabet_size);
+          double            mean      = saft_stats_mean (context,
+                                                         seq_size,
+                                                         seq_size);
+          double            var       = saft_stats_var  (context,
+                                                         seq_size,
+                                                         seq_size);
           printf ("n = m = %-4d ; k = %-3d ; mean = %.5e ; var = %.5e\n",
                   seq_size, word_size, mean, var);
         }
