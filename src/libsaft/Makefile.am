@@ -6,18 +6,23 @@ libsaft_sources =		\
 	saftfasta.c		\
 	safthash.c		\
 	saftsearch.c		\
-	saftsequence.c
+	saftsequence.c		\
+	saftstats.c
 
 libsaft_headers =		\
 	safterror.h		\
 	saftfasta.h		\
 	safthash.h		\
 	saftsearch.h		\
-	saftsequence.h
+	saftsequence.h		\
+	saftstats.h
 
-# TODO add library version info like that:
+# FIXME add library version info like that:
 #libsaft_la_LDFLAGS =	\
 #	-version-info $(LT_VERSION_INFO)
+#
+libsaft_la_LIBADD =		\
+	-lm
 
 libsaft_la_SOURCES =		\
 	$(libsaft_sources)	\
