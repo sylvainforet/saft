@@ -22,6 +22,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <gsl/gsl_cdf.h>
+
 #include "saftstats.h"
 
 static double saft_stats_sum_freq_pow (double      *f,
@@ -186,6 +188,25 @@ saft_stats_sum_freq_pow (double      *f,
   res = pow (res, (double)sum_pow);
 
   return res;
+}
+
+double
+saft_stats_pgamma_m_v (double d2,
+                       double mean,
+                       double var)
+{
+  const double scale = var / mean;
+  const double shape = mean / scale;
+
+  return saft_stats_pgamma (d2, shape, scale);
+}
+
+double
+saft_stats_pgamma (double d2,
+                   double shape,
+                   double scale)
+{
+  return gsl_cdf_gamma_Q (d2, shape, scale);
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:

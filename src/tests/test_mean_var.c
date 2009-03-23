@@ -1,4 +1,4 @@
-/* test_fasta.c
+/* test_mean_var.c
  * Copyright (C) 2008  Sylvain FORET
  *
  * This program is free software: you can redistribute it and/or modify

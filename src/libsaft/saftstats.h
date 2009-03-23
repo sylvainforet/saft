@@ -58,6 +58,14 @@ double            saft_stats_var          (SaftStatsContext *context,
                                            unsigned int      query_size,
                                            unsigned int      subject_size);
 
+double            saft_stats_pgamma_m_v   (double            d2,
+                                           double            mean,
+                                           double            var);
+
+double            saft_stats_pgamma       (double            d2,
+                                           double            shape,
+                                           double            scale);
+
 #ifdef __cplusplus
 }
 #endif

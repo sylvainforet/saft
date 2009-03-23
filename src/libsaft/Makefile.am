@@ -1,3 +1,6 @@
+AM_CPPFLAGS =			\
+	$(GSL_CFLAGS)
+
 lib_LTLIBRARIES =		\
 	libsaft.la
 
@@ -22,7 +25,7 @@ libsaft_headers =		\
 #	-version-info $(LT_VERSION_INFO)
 #
 libsaft_la_LIBADD =		\
-	-lm
+	$(GSL_LIBS)
 
 libsaft_la_SOURCES =		\
 	$(libsaft_sources)	\

@@ -10,7 +10,14 @@ AC_PROG_CC_C99
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
+# Checks for pkg-config
+PKG_PROG_PKG_CONFIG(0.16)
+
 # Checks for libraries.
+
+PKG_CHECK_MODULES(GSL,
+                  gsl >= 1.12, ,
+                  AC_MSG_ERROR(Test for GSL failed. See the file 'INSTALL' for help.))
 
 # Checks for header files.
 AC_HEADER_STDC
