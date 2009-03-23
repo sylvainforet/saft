@@ -1,0 +1,3 @@
+* Dependencies:
+  + pkg-config
+  + GNU scientific library (GSL)

@@ -82,7 +82,7 @@ SaftSearch* saft_search_new         (SaftSequence *query,
 void        saft_search_free        (SaftSearch   *search);
 
 void        saft_search_add_subject (SaftSearch   *search,
-                                     SaftSequence *seq);
+                                     SaftSequence *subject);
 
 #ifdef __cplusplus
 }
