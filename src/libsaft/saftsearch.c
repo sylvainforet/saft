@@ -73,6 +73,10 @@ saft_search_new (SaftSequence *query,
   saft_htable_add_query (search->htable, search->query);
   /* FIXME Count the query's letters here is freq_type is SAFT_FREQ_QUERY or
    * SAFT_FREQ_QUERY_SUBJECTS */
+  if (search->freq_type == SAFT_FREQ_QUERY ||
+      search->freq_type == SAFT_FREQ_QUERY_SUBJECTS)
+    {
+    }
 
   return search;
 }

@@ -62,6 +62,23 @@ void          saft_alphabet_free (SaftAlphabet *alphabet);
 extern SaftAlphabet SaftAlphabetDNA;
 extern SaftAlphabet SaftAlphabetProtein;
 
+/***********/
+/* Segment */
+/***********/
+
+typedef struct _SaftSegment SaftSegment;
+
+struct _SaftSegment
+{
+  SaftLetter  *seq;
+  unsigned int size;
+  SaftSegment *next;
+};
+
+SaftSegment* saft_segment_new  (void);
+
+void         saft_segment_free (SaftSegment *segment);
+
 /************/
 /* Sequence */
 /************/
@@ -71,8 +88,9 @@ typedef struct _SaftSequence SaftSequence;
 struct _SaftSequence
 {
   char          *name;
-  SaftLetter    *seq;
   SaftAlphabet  *alphabet;
+  SaftLetter    *seq;
+  SaftSegment   *segments;
   unsigned int   size;
 };
 

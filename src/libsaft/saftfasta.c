@@ -222,11 +222,13 @@ saft_fasta_iter (const char        *filename,
 
 SaftSequence*
 saft_fasta_to_seq (SaftFasta    *fasta,
-                    SaftAlphabet *alphabet)
+                   SaftAlphabet *alphabet)
 {
   SaftSequence  *seq;
+  SaftSegment   *segment = NULL;
   unsigned char *tmp_f;
   SaftLetter    *tmp_s;
+  unsigned int   in_segment;
 
   seq           = saft_sequence_new ();
   seq->alphabet = alphabet;
@@ -236,12 +238,29 @@ saft_fasta_to_seq (SaftFasta    *fasta,
   tmp_f         = (unsigned char *)fasta->seq;
   tmp_s         = seq->seq - 1;
 
+  in_segment = 0;
   while (*tmp_f)
     {
       *++tmp_s = alphabet->codes[*tmp_f++];
       if (*tmp_s == 0)
-        saft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
-                    *tmp_s, alphabet->name);
+        {
+          saft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
+                      *tmp_s, alphabet->name);
+          if (in_segment)
+            in_segment = 0;
+        }
+      else
+        {
+          if (!in_segment)
+            {
+              in_segment    = 1;
+              segment       = saft_segment_new ();
+              segment->seq  = tmp_s;
+              segment->next = seq->segments;
+              seq->segments = segment;
+            }
+          segment->size++;
+        }
     }
   return seq;
 }

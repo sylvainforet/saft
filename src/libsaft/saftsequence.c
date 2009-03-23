@@ -24,6 +24,10 @@
 #include "saftsequence.h"
 
 
+/************/
+/* Alphabet */
+/************/
+
 SaftAlphabet SaftAlphabetDNA =
 {
   .name    = "DNA",
@@ -122,6 +126,37 @@ saft_alphabet_free (SaftAlphabet *alphabet)
     }
 }
 
+/***********/
+/* Segment */
+/***********/
+
+SaftSegment*
+saft_segment_new ()
+{
+  SaftSegment *segment;
+
+  segment       = malloc (sizeof (*segment));
+  segment->seq  = NULL;
+  segment->size = 0;
+  segment->next = NULL;
+
+  return segment;
+}
+
+void
+saft_segment_free (SaftSegment *segment)
+{
+  if (segment)
+    {
+      saft_segment_free (segment->next);
+      free (segment);
+    }
+}
+
+/************/
+/* Sequence */
+/************/
+
 SaftSequence*
 saft_sequence_new (void)
 {
@@ -129,8 +164,9 @@ saft_sequence_new (void)
 
   seq           = malloc (sizeof (*seq));
   seq->name     = NULL;
-  seq->seq      = NULL;
   seq->alphabet = NULL;
+  seq->seq      = NULL;
+  seq->segments = NULL;
   seq->size     = 0;
 
   return seq;
@@ -163,10 +199,14 @@ saft_sequence_to_string (SaftSequence *seq)
   return ret;
 }
 
+/*************/
+/* Sequences */
+/*************/
+
 void
 saft_sequences_iter (SaftSequence  **sequences,
-                      SaftSeqIterFunc func,
-                      void            *data)
+                     SaftSeqIterFunc func,
+                     void           *data)
 {
   while (*sequences)
     {

@@ -28,6 +28,10 @@
 
 #define SAFT_HTABLE_SIZE 1024
 
+static void         saft_htable_add_query_segment (SaftHTable  *table,
+                                                   SaftSegment *segment);
+
+
 static unsigned int saft_get_high_bit (unsigned int x);
 
 
@@ -63,7 +67,7 @@ saft_htable_new (SaftAlphabet *alphabet,
   SaftHTable *table;
 
   table            = malloc (sizeof (*table));
-  table->size      = SAFT_HTABLE_SIZE;
+  table->size      = SAFT_HTABLE_SIZE; /* FIXME be more clever here */
   table->shift     = saft_get_high_bit (alphabet->size) + 1;
   table->table     = malloc (sizeof (*table->table) * table->size);
   table->word_size = word_size;
@@ -108,80 +112,88 @@ void
 saft_htable_add_query (SaftHTable   *table,
                        SaftSequence *seq)
 {
+  SaftSegment *segment;
   SaftLetter  *start;
   unsigned int i;
   unsigned int hash = 0;
 
-  if (table->word_size > seq->size)
-    return;
-
-  start = seq->seq - 1;
-  for (i = 1; i < table->word_size; i++)
-    hash = (hash << table->shift) | *++start;
-
-  start = seq->seq;
-  i     = table->word_size - 1;
-  do
+  for (segment = seq->segments; segment; segment = segment->next)
     {
-      SaftHNode *node;
+      if (table->word_size > segment->size)
+        return;
 
-      hash <<= table->shift;
-      hash  |= seq->seq[i];
-      hash  &= table->hmask;
+      start = segment->seq - 1;
+      for (i = 1; i < table->word_size; i++)
+        hash = (hash << table->shift) | *++start;
 
-      for (node = table->table[hash]; node; node = node->next)
-        if (saft_htable_cmp (table, node, start))
-          {
-            node->count_query++;
-            goto found;
-          }
-      node               = saft_hnode_new ();
-      node->seq          = start;
-      node->count_query  = 1;
-      node->next         = table->table[hash];
-      table->table[hash] = node;
+      start = segment->seq;
+      i     = table->word_size - 1;
+      do
+        {
+          SaftHNode *node;
+
+          hash <<= table->shift;
+          hash  |= segment->seq[i];
+          hash  &= table->hmask;
+
+          for (node = table->table[hash]; node; node = node->next)
+            if (saft_htable_cmp (table, node, start))
+              {
+                node->count_query++;
+                goto found;
+              }
+          node               = saft_hnode_new ();
+          node->seq          = start;
+          node->count_query  = 1;
+          node->next         = table->table[hash];
+          table->table[hash] = node;
 found:
-      ++i;
-      ++start;
+          ++i;
+          ++start;
+        }
+      while (i < segment->size);
     }
-  while (i < seq->size);
 }
 
 void
 saft_htable_add_subject (SaftHTable   *table,
                          SaftSequence *seq)
 {
+  SaftSegment *segment;
   SaftLetter  *start;
   unsigned int i;
-  unsigned int hash       = 0;
+  unsigned int hash = 0;
 
-  if (table->word_size > seq->size)
-    return;
-
-  start = seq->seq - 1;
-  for (i = 1; i < table->word_size; i++)
-    hash = (hash << table->shift) | *++start;
-
-  start = seq->seq;
-  i     = table->word_size - 1;
-  do
+  for (segment = seq->segments; segment; segment = segment->next)
     {
-      SaftHNode *node;
+      if (table->word_size > segment->size)
+        return;
 
-      hash <<= table->shift;
-      hash  |= seq->seq[i];
-      hash  &= table->hmask;
+      start = segment->seq - 1;
+      for (i = 1; i < table->word_size; i++)
+        hash = (hash << table->shift) | *++start;
 
-      for (node = table->table[hash]; node; node = node->next)
-        if (saft_htable_cmp (table, node, start))
-          {
-            node->count_subject++;
-            break;
-          }
-      ++i;
-      ++start;
+      start = segment->seq;
+      i     = table->word_size - 1;
+      do
+        {
+          SaftHNode *node;
+
+          hash <<= table->shift;
+          hash  |= segment->seq[i];
+          hash  &= table->hmask;
+
+          for (node = table->table[hash]; node; node = node->next)
+            if (saft_htable_cmp (table, node, start))
+              {
+                node->count_subject++;
+                break;
+              }
+          ++i;
+          ++start;
+        }
+      while (i < seq->size);
     }
-  while (i < seq->size);
 }
 
 void
