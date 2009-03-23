@@ -30,6 +30,8 @@ static double saft_stats_sum_freq_pow (double      *f,
                                        unsigned int sum_pow);
 
 
+/* FIXME There's quite a bit of optimisation and checking for numeric stability
+ * that could be done here */
 SaftStatsContext*
 saft_stats_context_new (unsigned int word_size,
                         double      *letters_frequencies,

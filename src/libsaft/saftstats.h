@@ -44,19 +44,19 @@ struct _SaftStatsContext
   unsigned int unif: 1;
 };
 
-SaftStatsContext* saft_stats_context_new  (unsigned int word_size,
-                                           double      *letters_frequencies,
-                                           unsigned int n_letters);
+SaftStatsContext* saft_stats_context_new  (unsigned int      word_size,
+                                           double           *letters_frequencies,
+                                           unsigned int      n_letters);
 
 void              saft_stats_context_free (SaftStatsContext *context);
 
-double saft_stats_mean (SaftStatsContext *context,
-                        unsigned int      query_size,
-                        unsigned int      subject_size);
+double            saft_stats_mean         (SaftStatsContext *context,
+                                           unsigned int      query_size,
+                                           unsigned int      subject_size);
 
-double saft_stats_var  (SaftStatsContext *context,
-                        unsigned int      query_size,
-                        unsigned int      subject_size);
+double            saft_stats_var          (SaftStatsContext *context,
+                                           unsigned int      query_size,
+                                           unsigned int      subject_size);
 
 #ifdef __cplusplus
 }
