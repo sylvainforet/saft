@@ -56,7 +56,7 @@ main (int argc, char **argv)
 
       saft_search_add_subject (search, s2);
       saft_search_compute_pvalues (search);
-      printf ("D2 = %d ; p-value = %.5e\n", search->results->d2, search->results->pvalue);
+      printf ("D2 = %d ; p-value = %.5e\n", search->results->d2, search->results->p_value);
 
       saft_sequence_free (s2);
       saft_search_free (search);

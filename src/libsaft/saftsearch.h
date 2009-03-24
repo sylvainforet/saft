@@ -42,7 +42,8 @@ struct _SaftResult
   SaftResult  *next;
   unsigned int d2;
   unsigned int subject_size;
-  double       pvalue;
+  double       p_value;
+  double       p_value_adj;
 };
 
 SaftResult* saft_result_new  (void);
@@ -72,7 +73,9 @@ struct _SaftSearch
   double        *letters_frequencies;
   unsigned int  *letters_counts;
   SaftResult    *results;
+  SaftResult   **sorted_results;
   unsigned int   word_size;
+  unsigned int   n_results;
   SaftFreqType   freq_type;
 };
 

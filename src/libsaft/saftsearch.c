@@ -26,6 +26,13 @@
 #include "saftsearch.h"
 #include "saftstats.h"
 
+static void saft_search_adjust_pvalues (SaftSearch *search);
+
+static void saft_search_sort_results   (SaftSearch *search);
+
+static int  saft_result_pvalue_cmp     (const void *p1,
+                                        const void *p2);
+
 
 /**********/
 /* Result */
@@ -40,7 +47,8 @@ saft_result_new ()
   result->next         = NULL;
   result->d2           = 0;
   result->subject_size = 0;
-  result->pvalue       = 1;
+  result->p_value      = 1;
+  result->p_value_adj  = 1;
 
   return result;
 }
@@ -74,6 +82,9 @@ saft_search_new (SaftSequence *query,
   search->htable              = saft_htable_new (query->alphabet, search->word_size);
   search->letters_frequencies = malloc (query->alphabet->size * sizeof (*search->letters_frequencies));
   search->letters_counts      = malloc (query->alphabet->size * sizeof (*search->letters_counts));
+  search->results             = NULL;
+  search->sorted_results      = NULL;
+  search->n_results           = 0;
   saft_htable_add_query (search->htable, search->query);
 
   if (search->freq_type == SAFT_FREQ_QUERY ||
@@ -124,6 +135,8 @@ saft_search_free (SaftSearch *search)
         free (search->letters_counts);
       if (search->results)
         saft_result_free (search->results);
+      if (search->sorted_results)
+        free (search->sorted_results);
       free (search);
     }
 }
@@ -140,6 +153,7 @@ saft_search_add_subject (SaftSearch   *search,
   result->subject_size = subject->size;
   result->next         = search->results;
   search->results      = result;
+  search->n_results++;
 
   if (search->freq_type == SAFT_FREQ_SUBJECTS ||
       search->freq_type == SAFT_FREQ_QUERY_SUBJECTS)
@@ -187,8 +201,47 @@ saft_search_compute_pvalues (SaftSearch *search)
       const double var  = saft_stats_var  (context,
                                            search->query->size,
                                            result->subject_size);
-      result->pvalue = saft_stats_pgamma_m_v (result->d2, mean, var);
+      result->p_value   = saft_stats_pgamma_m_v (result->d2, mean, var);
     }
+
+  saft_search_adjust_pvalues (search);
+}
+
+static void
+saft_search_adjust_pvalues (SaftSearch *search)
+{
+  saft_search_sort_results (search);
+  /* FIXME finish this */
+}
+
+static void
+saft_search_sort_results (SaftSearch *search)
+{
+  SaftResult  *result;
+  SaftResult **tmp;
+
+  search->sorted_results = malloc (search->n_results * sizeof (*search->sorted_results));
+  tmp                    = search->sorted_results - 1;
+
+  for (result = search->results; result; result = result->next)
+    *++tmp = result;
+
+  qsort (search->sorted_results,
+         search->n_results,
+         sizeof (*search->sorted_results),
+         saft_result_pvalue_cmp);
+}
+
+static int
+saft_result_pvalue_cmp (const void *p1,
+                        const void *p2)
+{
+  const SaftResult *res1 = (SaftResult*)p1;
+  const SaftResult *res2 = (SaftResult*)p2;
+
+  if (res1->p_value > res2->p_value)
+    return 1;
+  return -1;
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
