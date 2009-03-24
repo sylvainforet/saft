@@ -22,7 +22,9 @@
 
 #include <stdlib.h>
 
+#include "safterror.h"
 #include "saftsearch.h"
+#include "saftstats.h"
 
 
 /**********/
@@ -38,6 +40,7 @@ saft_result_new ()
   result->next         = NULL;
   result->d2           = 0;
   result->subject_size = 0;
+  result->pvalue       = 1;
 
   return result;
 }
@@ -59,7 +62,8 @@ saft_result_free (SaftResult *result)
 SaftSearch*
 saft_search_new (SaftSequence *query,
                  unsigned int  word_size,
-                 SaftFreqType  freq_type)
+                 SaftFreqType  freq_type,
+                 const double *letters_frequencies)
 {
   SaftSearch *search;
 
@@ -82,8 +86,24 @@ saft_search_new (SaftSequence *query,
           unsigned int i;
 
           for (i = 0; i < segment->size; i++)
-            search->letters_counts[segment->seq[i]]++;
+            /* (segment->seq[i] - 1) because there should not be any `0' letter
+             * left at this stage */
+            search->letters_counts[segment->seq[i] - 1]++;
         }
+    }
+  else if (search->freq_type == SAFT_FREQ_USER)
+    {
+      unsigned int i;
+
+      for (i = 0; i < query->alphabet->size; i++)
+        search->letters_frequencies[i] = letters_frequencies[i];
+    }
+  else /* Assume uniform (SAFT_FREQ_UNIFORM) by default */
+    {
+      unsigned int i;
+
+      for (i = 0; i < query->alphabet->size; i++)
+        search->letters_counts[i] = 1;
     }
 
   return search;
@@ -131,8 +151,43 @@ saft_search_add_subject (SaftSearch   *search,
           unsigned int i;
 
           for (i = 0; i < segment->size; i++)
-            search->letters_counts[segment->seq[i]]++;
+            /* (segment->seq[i] - 1) because there should not be any `0' letter
+             * left at this stage */
+            search->letters_counts[segment->seq[i] - 1]++;
         }
+    }
+}
+
+void
+saft_search_compute_pvalues (SaftSearch *search)
+{
+  SaftStatsContext *context;
+  SaftResult       *result;
+  unsigned int      i;
+
+  if (search->freq_type != SAFT_FREQ_USER)
+    {
+      unsigned int total = 0;
+
+      for (i = 0; i < search->query->alphabet->size; i++)
+        total += search->letters_counts[i];
+      for (i = 0; i < search->query->alphabet->size; i++)
+        search->letters_frequencies[i] = ((double)search->letters_counts[i]) / total;
+    }
+
+  context = saft_stats_context_new (search->word_size,
+                                    search->letters_frequencies,
+                                    search->query->alphabet->size);
+
+  for (result = search->results; result; result = result->next)
+    {
+      const double mean = saft_stats_mean (context,
+                                           search->query->size,
+                                           result->subject_size);
+      const double var  = saft_stats_var  (context,
+                                           search->query->size,
+                                           result->subject_size);
+      result->pvalue = saft_stats_pgamma_m_v (result->d2, mean, var);
     }
 }
 

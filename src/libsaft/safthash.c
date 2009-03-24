@@ -28,10 +28,6 @@
 
 #define SAFT_HTABLE_SIZE 1024
 
-static void         saft_htable_add_query_segment (SaftHTable  *table,
-                                                   SaftSegment *segment);
-
-
 static unsigned int saft_get_high_bit (unsigned int x);
 
 

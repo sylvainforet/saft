@@ -42,6 +42,7 @@ struct _SaftResult
   SaftResult  *next;
   unsigned int d2;
   unsigned int subject_size;
+  double       pvalue;
 };
 
 SaftResult* saft_result_new  (void);
@@ -57,8 +58,8 @@ typedef enum
   SAFT_FREQ_QUERY,
   SAFT_FREQ_SUBJECTS,
   SAFT_FREQ_QUERY_SUBJECTS,
-  SAFT_FREQ_UNIFORM, /* FIXME This is a special case of SAFT_FREQ_USER, remove it? */
-  SAFT_FREQ_USER
+  SAFT_FREQ_USER,
+  SAFT_FREQ_UNIFORM
 }
 SaftFreqType;
 
@@ -75,14 +76,17 @@ struct _SaftSearch
   SaftFreqType   freq_type;
 };
 
-SaftSearch* saft_search_new         (SaftSequence *query,
-                                     unsigned int  word_size,
-                                     SaftFreqType  freq_type);
+SaftSearch* saft_search_new             (SaftSequence *query,
+                                         unsigned int  word_size,
+                                         SaftFreqType  freq_type,
+                                         const double *letters_frequencies);
 
-void        saft_search_free        (SaftSearch   *search);
+void        saft_search_free            (SaftSearch   *search);
 
-void        saft_search_add_subject (SaftSearch   *search,
-                                     SaftSequence *subject);
+void        saft_search_add_subject     (SaftSearch   *search,
+                                         SaftSequence *subject);
+
+void        saft_search_compute_pvalues (SaftSearch   *search);
 
 #ifdef __cplusplus
 }
