@@ -112,6 +112,7 @@ saft_htable_add_query (SaftHTable   *table,
   SaftLetter  *start;
   unsigned int i;
   unsigned int hash = 0;
+  unsigned int idx;
 
   for (segment = seq->segments; segment; segment = segment->next)
     {
@@ -131,8 +132,9 @@ saft_htable_add_query (SaftHTable   *table,
           hash <<= table->shift;
           hash  |= segment->seq[i];
           hash  &= table->hmask;
+          idx    = hash % SAFT_HTABLE_SIZE;
 
-          for (node = table->table[hash]; node; node = node->next)
+          for (node = table->table[idx]; node; node = node->next)
             if (saft_htable_cmp (table, node, start))
               {
                 node->count_query++;
@@ -141,8 +143,8 @@ saft_htable_add_query (SaftHTable   *table,
           node               = saft_hnode_new ();
           node->seq          = start;
           node->count_query  = 1;
-          node->next         = table->table[hash];
-          table->table[hash] = node;
+          node->next         = table->table[idx];
+          table->table[idx]  = node;
 found:
           ++i;
           ++start;
@@ -159,6 +161,7 @@ saft_htable_add_subject (SaftHTable   *table,
   SaftLetter  *start;
   unsigned int i;
   unsigned int hash = 0;
+  unsigned int idx;
 
   for (segment = seq->segments; segment; segment = segment->next)
     {
@@ -178,8 +181,9 @@ saft_htable_add_subject (SaftHTable   *table,
           hash <<= table->shift;
           hash  |= segment->seq[i];
           hash  &= table->hmask;
+          idx    = hash % SAFT_HTABLE_SIZE;
 
-          for (node = table->table[hash]; node; node = node->next)
+          for (node = table->table[idx]; node; node = node->next)
             if (saft_htable_cmp (table, node, start))
               {
                 node->count_subject++;

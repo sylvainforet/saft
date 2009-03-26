@@ -21,6 +21,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "safterror.h"
 #include "saftsearch.h"
@@ -45,6 +46,7 @@ saft_result_new ()
 
   result               = malloc (sizeof (*result));
   result->next         = NULL;
+  result->name         = NULL;
   result->d2           = 0;
   result->subject_size = 0;
   result->p_value      = 1;
@@ -59,6 +61,8 @@ saft_result_free (SaftResult *result)
   if (result)
     {
       saft_result_free (result->next);
+      if (result->name)
+        free (result->name);
       free (result);
     }
 }
@@ -150,6 +154,7 @@ saft_search_add_subject (SaftSearch   *search,
   saft_htable_add_subject (search->htable, subject);
   result               = saft_result_new ();
   result->d2           = saft_htable_d2 (search->htable);
+  result->name         = strdup (subject->name);
   result->subject_size = subject->size;
   result->next         = search->results;
   search->results      = result;
@@ -170,6 +175,7 @@ saft_search_add_subject (SaftSearch   *search,
             search->letters_counts[segment->seq[i] - 1]++;
         }
     }
+  saft_htable_clear_subject (search->htable);
 }
 
 void
@@ -236,10 +242,10 @@ static int
 saft_result_pvalue_cmp (const void *p1,
                         const void *p2)
 {
-  const SaftResult *res1 = (SaftResult*)p1;
-  const SaftResult *res2 = (SaftResult*)p2;
+  const SaftResult **res1 = (const SaftResult**)p1;
+  const SaftResult **res2 = (const SaftResult**)p2;
 
-  if (res1->p_value > res2->p_value)
+  if ((*res1)->p_value > (*res2)->p_value)
     return 1;
   return -1;
 }

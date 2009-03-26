@@ -1,8 +1,21 @@
+BUGS:
++ Adjust the effective sequence size depending on the number of `0' characters
+  found in the sequences.
+
 FEATURES:
 + Filtering:
   - integrate BLAST SEG and DUST code
   - dont filter in SAFT, use another program upstream and some glue
   - create an AA and a Nucleic alphabets to filter out lower case letters
 + The SaftHNodes could be allocated by blocks instead of one by one.
++ Should the word size be the same for all the comparisons in a search, or
+  should it depend on the query and subject sizes? At the moment it is the same
+  for all the comparisons in a search.
++ How to handle + and - strand for nucleic acids and the 6 frames of a
+  translated search?
++ Finish implementing the Benjamini and Hochberg p-values adjustment.
++ In SaftFasta: add saft_fasta_read_fd and saft_fasta_iter_fd to work on file
+  descriptors instead of paths. This will allow to read querries from stdin.
++ Change SaftError to have different log levels.
 
 FIXME: there might be `FIXME's scattered throughout the code that require attention

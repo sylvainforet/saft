@@ -40,6 +40,7 @@ typedef struct _SaftResult SaftResult;
 struct _SaftResult
 {
   SaftResult  *next;
+  char        *name;
   unsigned int d2;
   unsigned int subject_size;
   double       p_value;
