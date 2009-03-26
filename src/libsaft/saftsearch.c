@@ -31,7 +31,7 @@ static void saft_search_adjust_pvalues (SaftSearch *search);
 
 static void saft_search_sort_results   (SaftSearch *search);
 
-static int  saft_result_pvalue_cmp     (const void *p1,
+static int  saft_result_pvalue_cmp_inc (const void *p1,
                                         const void *p2);
 
 
@@ -216,8 +216,16 @@ saft_search_compute_pvalues (SaftSearch *search)
 static void
 saft_search_adjust_pvalues (SaftSearch *search)
 {
+  double prev = 1;
+  int    i;
+
   saft_search_sort_results (search);
-  /* FIXME finish this */
+
+  for (i = search->n_results - 1; i >= 0; i--)
+    search->sorted_results[i]->p_value_adj = saft_stats_BH_element (search->sorted_results[i]->p_value,
+                                                                    prev,
+                                                                    i,
+                                                                    search->n_results);
 }
 
 static void
@@ -235,12 +243,12 @@ saft_search_sort_results (SaftSearch *search)
   qsort (search->sorted_results,
          search->n_results,
          sizeof (*search->sorted_results),
-         saft_result_pvalue_cmp);
+         saft_result_pvalue_cmp_inc);
 }
 
 static int
-saft_result_pvalue_cmp (const void *p1,
-                        const void *p2)
+saft_result_pvalue_cmp_inc (const void *p1,
+                            const void *p2)
 {
   const SaftResult **res1 = (const SaftResult**)p1;
   const SaftResult **res2 = (const SaftResult**)p2;

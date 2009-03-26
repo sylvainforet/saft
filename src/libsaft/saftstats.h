@@ -66,6 +66,14 @@ double            saft_stats_pgamma       (double            d2,
                                            double            shape,
                                            double            scale);
 
+double*           saft_stats_BH_array     (double           *p_values,
+                                           unsigned int      n_p_values);
+
+double            saft_stats_BH_element   (double            p_value,
+                                           double            p_previous,
+                                           unsigned int      index,
+                                           unsigned int      n_p_values);
+
 #ifdef __cplusplus
 }
 #endif

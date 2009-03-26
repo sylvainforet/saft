@@ -26,7 +26,8 @@
 #include "saftfasta.h"
 
 int
-main (int argc, char **argv)
+main (int    argc,
+      char **argv)
 {
   SaftFasta   **seqs;
   SaftFasta   **tmp;

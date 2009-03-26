@@ -209,5 +209,47 @@ saft_stats_pgamma (double d2,
   return gsl_cdf_gamma_Q (d2, shape, scale);
 }
 
+/**
+ * Benjamini and Hochberg method
+ * p_values are expected to be already sorted in increasing order
+ * p_values are sorted in place
+ */
+double*
+saft_stats_BH_array (double       *p_values,
+                     unsigned int  n_p_values)
+{
+  int i;
+
+  /* We start at the second p-value (from the end) because the first one is
+   * always unchanged
+   */
+  for (i = n_p_values - 2; i >= 0; i--)
+    {
+      p_values[i] = (p_values[i] * n_p_values) / (i + 1);
+      if (p_values[i] > p_values[i + 1])
+        p_values[i] = p_values[i + 1];
+    }
+  return p_values;
+}
+
+/**
+ * This version is designed to be called on structures where p-values to avoid
+ * having to allocate an array of p_values
+ * Index is assumed to be zero based
+ */
+double
+saft_stats_BH_element (double       p_value,
+                       double       p_previous,
+                       unsigned int index,
+                       unsigned int n_p_values)
+{
+  double adjusted = (p_value * n_p_values) / (index + 1);
+
+  if (adjusted > p_previous)
+    return p_previous;
+
+  return adjusted;
+}
+
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */

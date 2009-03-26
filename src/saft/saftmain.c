@@ -402,20 +402,18 @@ saft_main_write_search (SaftOptions *options,
       options->show_max > search->n_results)
     options->show_max = search->n_results;
 
-  fprintf (stream, "%s %s\n",
+  fprintf (stream, "Query: %s program: %s word size: %d\n",
+           search->query->name,
            saft_program_names[options->program],
-           search->query->name);
+           search->word_size);
   for (i = 0;
        i < options->show_max &&
-       /* FIXME replace this with p_value_adj when we know how to compute it */
-       search->sorted_results[i]->p_value <= options->p_max;
+       search->sorted_results[i]->p_value_adj <= options->p_max;
        i++)
     {
-      if (i > 0)
-        fprintf (stream, "\n");
-      fprintf (stream, "  %s %.5e\n",
+      fprintf (stream, "  Hit: %s adj.p.val: %.5e p.val: %.5e\n",
                search->sorted_results[i]->name,
-               /* FIXME replace this with p_value_adj when we know how to compute it */
+               search->sorted_results[i]->p_value_adj,
                search->sorted_results[i]->p_value);
     }
   if (i == 0)
