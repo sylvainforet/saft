@@ -70,9 +70,9 @@ typedef struct _SaftSegment SaftSegment;
 
 struct _SaftSegment
 {
+  SaftSegment *next;
   SaftLetter  *seq;
   unsigned int size;
-  SaftSegment *next;
 };
 
 SaftSegment* saft_segment_new  (void);

@@ -216,14 +216,14 @@ saft_search_compute_pvalues (SaftSearch *search)
 static void
 saft_search_adjust_pvalues (SaftSearch *search)
 {
-  double prev = 1;
-  int    i;
+  int i;
 
   saft_search_sort_results (search);
 
-  for (i = search->n_results - 1; i >= 0; i--)
+  search->sorted_results[search->n_results - 1]->p_value_adj = search->sorted_results[search->n_results - 1]->p_value;
+  for (i = search->n_results - 2; i >= 0; i--)
     search->sorted_results[i]->p_value_adj = saft_stats_BH_element (search->sorted_results[i]->p_value,
-                                                                    prev,
+                                                                    search->sorted_results[i + 1]->p_value_adj,
                                                                     i,
                                                                     search->n_results);
 }

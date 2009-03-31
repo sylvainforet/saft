@@ -26,7 +26,7 @@
 #include "safthash.h"
 
 
-#define SAFT_HTABLE_SIZE 1024
+#define SAFT_HTABLE_SIZE 16384
 
 static unsigned int saft_get_high_bit (unsigned int x);
 
@@ -117,7 +117,7 @@ saft_htable_add_query (SaftHTable   *table,
   for (segment = seq->segments; segment; segment = segment->next)
     {
       if (table->word_size > segment->size)
-        return;
+        continue;
 
       start = segment->seq - 1;
       for (i = 1; i < table->word_size; i++)
@@ -166,7 +166,7 @@ saft_htable_add_subject (SaftHTable   *table,
   for (segment = seq->segments; segment; segment = segment->next)
     {
       if (table->word_size > segment->size)
-        return;
+        continue;
 
       start = segment->seq - 1;
       for (i = 1; i < table->word_size; i++)
@@ -192,7 +192,7 @@ saft_htable_add_subject (SaftHTable   *table,
           ++i;
           ++start;
         }
-      while (i < seq->size);
+      while (i < segment->size);
     }
 }
 
@@ -222,11 +222,14 @@ saft_htable_hash (SaftHTable *table,
   return ret % SAFT_HTABLE_SIZE;
 }
 
+inline
 int
 saft_htable_cmp (SaftHTable *table,
                  SaftHNode  *node,
                  SaftLetter *start)
 {
+  return !memcmp (start, node->seq, table->word_size);
+  /*
   unsigned int i;
   SaftLetter  *tmp = node->seq - 1;
 
@@ -236,6 +239,7 @@ saft_htable_cmp (SaftHTable *table,
       return 0;
 
   return 1;
+  */
 }
 
 unsigned int

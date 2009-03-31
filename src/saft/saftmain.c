@@ -411,8 +411,9 @@ saft_main_write_search (SaftOptions *options,
        search->sorted_results[i]->p_value_adj <= options->p_max;
        i++)
     {
-      fprintf (stream, "  Hit: %s adj.p.val: %.5e p.val: %.5e\n",
+      fprintf (stream, "  Hit: %s D2: %d adj.p.val: %.5e p.val: %.5e\n",
                search->sorted_results[i]->name,
+               search->sorted_results[i]->d2,
                search->sorted_results[i]->p_value_adj,
                search->sorted_results[i]->p_value);
     }

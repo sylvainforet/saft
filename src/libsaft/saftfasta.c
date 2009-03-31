@@ -244,8 +244,10 @@ saft_fasta_to_seq (SaftFasta    *fasta,
       *++tmp_s = alphabet->codes[*tmp_f++];
       if (*tmp_s == 0)
         {
+          /* FIXME only issue an error when the number of unknown letters is `large'
           saft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
                       *tmp_s, alphabet->name);
+          */
           if (in_segment)
             in_segment = 0;
         }

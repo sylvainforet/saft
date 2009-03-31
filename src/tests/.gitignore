@@ -1,2 +1,5 @@
+test_BH
 test_fasta
+test_mean_var
+test_pgamma
 test_search2seqs

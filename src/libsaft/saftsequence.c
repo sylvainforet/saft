@@ -136,9 +136,9 @@ saft_segment_new ()
   SaftSegment *segment;
 
   segment       = malloc (sizeof (*segment));
+  segment->next = NULL;
   segment->seq  = NULL;
   segment->size = 0;
-  segment->next = NULL;
 
   return segment;
 }
