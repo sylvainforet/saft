@@ -72,7 +72,7 @@ saft_htable_new (SaftAlphabet *alphabet,
   if (table->word_size * table->shift < sizeof (table->hmask) * 8)
     table->hmask >>= sizeof (table->hmask) * 8 - table->word_size * table->shift;
 
-  memset (table->table, 0, sizeof(*table->table));
+  memset (table->table, 0, table->size * sizeof(*table->table));
 
   return table;
 }
@@ -82,12 +82,9 @@ saft_htable_clear (SaftHTable *table)
 {
   unsigned int i;
 
-  if (table)
-    {
-      for (i = 0; i < table->size; i++)
-        saft_hnode_free (table->table[i]);
-      memset (table->table, 0, sizeof(*table->table));
-    }
+  for (i = 0; i < table->size; i++)
+    saft_hnode_free (table->table[i]);
+  memset (table->table, 0, table->size * sizeof(*table->table));
 }
 
 void
@@ -222,14 +219,14 @@ saft_htable_hash (SaftHTable *table,
   return ret % SAFT_HTABLE_SIZE;
 }
 
-inline
 int
 saft_htable_cmp (SaftHTable *table,
                  SaftHNode  *node,
                  SaftLetter *start)
 {
-  return !memcmp (start, node->seq, table->word_size);
   /*
+  return !memcmp (start, node->seq, table->word_size);
+  */
   unsigned int i;
   SaftLetter  *tmp = node->seq - 1;
 
@@ -239,19 +236,20 @@ saft_htable_cmp (SaftHTable *table,
       return 0;
 
   return 1;
-  */
 }
 
 unsigned int
-saft_htable_d2 (SaftHTable *tab)
+saft_htable_d2 (SaftHTable *table)
 {
-  SaftHNode   *node;
   unsigned int i;
   unsigned int d2 = 0;
 
-  for (i = 0; i < tab->size; i++)
-    for (node = tab->table[i]; node; node = node->next)
-      d2 += node->count_query * node->count_subject;
+  for (i = 0; i < table->size; i++)
+    {
+      SaftHNode   *node;
+      for (node = table->table[i]; node; node = node->next)
+        d2 += node->count_query * node->count_subject;
+    }
 
   return d2;
 }

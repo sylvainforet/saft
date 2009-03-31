@@ -89,7 +89,7 @@ int           saft_htable_cmp            (SaftHTable     *table,
                                           SaftHNode      *node,
                                           SaftLetter     *start);
 
-unsigned int  saft_htable_d2             (SaftHTable     *tab);
+unsigned int  saft_htable_d2             (SaftHTable     *table);
 
 SaftHNode*    saft_htable_lookup         (SaftHTable     *table,
                                           SaftLetter     *start);
