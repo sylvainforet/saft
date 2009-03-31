@@ -65,7 +65,7 @@ saft_htable_new (SaftAlphabet *alphabet,
   table            = malloc (sizeof (*table));
   table->size      = SAFT_HTABLE_SIZE; /* FIXME be more clever here */
   table->shift     = saft_get_high_bit (alphabet->size) + 1;
-  table->table     = malloc (sizeof (*table->table) * table->size);
+  table->table     = malloc (table->size * sizeof (*table->table));
   table->word_size = word_size;
   table->hmask     = ~0;
 
