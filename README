@@ -1,3 +1,14 @@
+************
+************
+**        **
+**  SAFT  **
+**        **
+************
+************
+
+Sequence Alignment-Free Tool, a tool to compare sequence without aligning them.
+Instead, we use the D2 statistic (number of k-mer matches) and variants thereof.
+
 * Dependencies:
   + pkg-config
   + GNU scientific library (GSL)
