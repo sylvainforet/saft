@@ -1,9 +1,9 @@
+ACLOCAL_AMFLAGS =		\
+	-I m4
 libsaftdir = $(top_srcdir)/src/libsaft
 
-INCLUDES =			\
-	-I$(libsaftdir)
-
 AM_CPPFLAGS =			\
+	-I$(libsaftdir)		\
 	-DSAFT_VERSION=\"$(PACKAGE_VERSION)\"
 
 bin_PROGRAMS =	saft

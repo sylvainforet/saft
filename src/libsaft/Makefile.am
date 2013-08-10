@@ -1,3 +1,6 @@
+ACLOCAL_AMFLAGS =		\
+	-I m4
+
 AM_CPPFLAGS =			\
 	$(GSL_CFLAGS)
 

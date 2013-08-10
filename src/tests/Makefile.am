@@ -1,10 +1,13 @@
+ACLOCAL_AMFLAGS =			\
+	-I m4
 libsaftdir = $(top_srcdir)/src/libsaft
 
-INCLUDES =				\
+AM_CPPFLAGS =				\
 	-I$(libsaftdir)
 
 noinst_PROGRAMS =			\
 	test_fasta			\
+	test_fasta_speed		\
 	test_search2seqs		\
 	test_mean_var			\
 	test_pgamma			\
@@ -12,6 +15,9 @@ noinst_PROGRAMS =			\
 
 test_fasta_LDADD = $(libsaftdir)/libsaft.la
 test_fasta_SOURCES = test_fasta.c
+
+test_fasta_speed_LDADD = $(libsaftdir)/libsaft.la
+test_fasta_speed_SOURCES = test_fasta_speed.c
 
 test_search2seqs_LDADD = $(libsaftdir)/libsaft.la
 test_search2seqs_SOURCES = test_search2seqs.c

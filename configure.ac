@@ -1,8 +1,9 @@
 AC_PREREQ(2.61)
 AC_INIT([saft], [0.0.1], [sylvain.foret@anu.edu.au])
-AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AC_CONFIG_SRCDIR([src/libsaft/saftsequence.h])
 AC_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE()
 
 # Checks for programs.
 AC_PROG_CC
