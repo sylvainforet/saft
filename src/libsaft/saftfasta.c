@@ -72,14 +72,14 @@ saft_fasta_free (SaftFasta *fasta)
 #define SEQ_CHUNK        256
 #define NAME_CHUNK       128
 #define STRUCT_CHUNK     16
-#define ENSURE(buf, buf_idx, chk_idx, nb_units) (buf_idx)++;                                              \
-                                                if ((buf_idx) == (chk_idx))                               \
-                                                  {                                                       \
-                                                    (chk_idx) += (nb_units);                              \
-                                                    (buf) = realloc ((buf), (chk_idx) * sizeof (*(buf))); \
-                                                  }
-#define CAP_STR(str, buf_idx, chk_idx) ENSURE (str, buf_idx, chk_idx, 1); \
-                                       (str)[(buf_idx)] = '\0';
+#define ENSURE(buf, buf_idx, buf_alloc) (buf_idx)++;                                                \
+                                        if ((buf_idx) == (buf_alloc))                               \
+                                          {                                                         \
+                                            (buf_alloc) <<= 1;                                      \
+                                            (buf) = realloc ((buf), (buf_alloc) * sizeof (*(buf))); \
+                                          }
+#define CAP_STR(str, buf_idx, buf_alloc) ENSURE (str, buf_idx, buf_alloc); \
+                                         (str)[(buf_idx)] = '\0';
 
 SaftFasta**
 saft_fasta_read (const char   *filename,
@@ -95,7 +95,7 @@ saft_fasta_read (const char   *filename,
                    (SaftFastaIterFunc)saft_fasta_append,
                    &data);
 
-  ENSURE (data.seqs, data.idx, data.alloc, 1);
+  ENSURE (data.seqs, data.idx, data.alloc);
   data.seqs[data.idx] = NULL;
   if (n)
     *n = data.idx;
@@ -115,7 +115,7 @@ saft_fasta_append (SaftFasta          *fasta,
   fasta->name   = NULL;
   fasta->seq    = NULL;
 
-  ENSURE (data->seqs, data->idx, data->alloc, STRUCT_CHUNK);
+  ENSURE (data->seqs, data->idx, data->alloc);
   data->seqs[data->idx] = seq_new;
 
   return 1;
@@ -127,7 +127,7 @@ saft_fasta_iter (const char        *filename,
                  void              *data)
 {
   char        buffer[READ_CHUNK];
-  SaftFasta *seq              = NULL;
+  SaftFasta *seq               = NULL;
   int         cur_name_alloc   =  0;
   int         cur_name_idx     = -1;
   int         cur_seq_alloc    =  0;
@@ -155,7 +155,7 @@ saft_fasta_iter (const char        *filename,
               if (in_header)
                 {
                   ENSURE (seq->name,
-                          cur_name_idx, cur_name_alloc, NAME_CHUNK);
+                          cur_name_idx, cur_name_alloc);
                   seq->name[cur_name_idx] = ch;
                   continue;
                 }
@@ -169,13 +169,17 @@ saft_fasta_iter (const char        *filename,
                       close(in);
                       return;
                     }
-                  saft_fasta_free (seq);
                 }
-              cur_name_alloc =  0;
+              else
+                {
+                  seq            = saft_fasta_new ();
+                  cur_name_alloc = 1<<8;
+                  cur_seq_alloc  = 1<<10;
+                  seq->name      = malloc (cur_name_alloc);
+                  seq->seq       = malloc (cur_seq_alloc);
+                }
               cur_name_idx   = -1;
-              cur_seq_alloc  =  0;
               cur_seq_idx    = -1;
-              seq            = saft_fasta_new ();
               in_header      = 1;
             }
           else
@@ -191,7 +195,7 @@ saft_fasta_iter (const char        *filename,
                       continue;
                     }
                   ENSURE (seq->name,
-                          cur_name_idx, cur_name_alloc, NAME_CHUNK);
+                          cur_name_idx, cur_name_alloc);
                   seq->name[cur_name_idx] = ch;
                 }
               else
@@ -202,7 +206,7 @@ saft_fasta_iter (const char        *filename,
                       ' '  == ch)
                     continue;
                   ENSURE (seq->seq,
-                          cur_seq_idx, cur_seq_alloc, SEQ_CHUNK);
+                          cur_seq_idx, cur_seq_alloc);
                   seq->seq[cur_seq_idx] = ch;
                 }
             }
