@@ -23,3 +23,5 @@ stamp-h1
 .deps
 .libs
 .*.swp
+config.h.in~
+m4
