@@ -35,8 +35,14 @@ typedef struct _SaftFasta SaftFasta;
 
 struct _SaftFasta
 {
-  char *name;
-  char *seq;
+  char   *name;
+  char   *seq;
+
+  size_t  name_length;
+  size_t  seq_length;
+
+  size_t  name_alloc;
+  size_t  seq_alloc;
 };
 
 typedef int   (*SaftFastaIterFunc) (SaftFasta         *fasta,

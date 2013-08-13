@@ -53,9 +53,15 @@ saft_fasta_new ()
 {
   SaftFasta *fasta;
 
-  fasta       = malloc (sizeof (*fasta));
-  fasta->name = NULL;
-  fasta->seq  = NULL;
+  fasta              = malloc (sizeof (*fasta));
+  fasta->name        = NULL;
+  fasta->seq         = NULL;
+
+  fasta->name_length = 0;
+  fasta->seq_length  = 0;
+
+  fasta->name_alloc  = 0;
+  fasta->seq_alloc   = 0;
 
   return fasta;
 }
@@ -79,8 +85,8 @@ saft_fasta_copy (SaftFasta *fasta)
   SaftFasta *new_fasta;
 
   new_fasta       = saft_fasta_new ();
-  new_fasta->name = strcpy (new_fasta->name, fasta->name);
-  new_fasta->seq  = strcpy (new_fasta->seq, fasta->seq);
+  new_fasta->name = strdup (fasta->name);
+  new_fasta->seq  = strdup (fasta->seq);
 
   return new_fasta;
 }
@@ -133,10 +139,6 @@ saft_fasta_iter (const char        *filename,
 {
   char        buffer[READ_CHUNK];
   SaftFasta  *seq              = NULL;
-  int         cur_name_alloc   =  0;
-  int         cur_name_idx     = -1;
-  int         cur_seq_alloc    =  0;
-  int         cur_seq_idx      = -1;
   int         in               = -1;
   int         status           = -1;
   char        in_header        =  0;
@@ -149,10 +151,10 @@ saft_fasta_iter (const char        *filename,
     }
 
   seq = saft_fasta_new ();
-  cur_name_alloc = NAME_INIT_SIZE;
-  cur_seq_alloc  = SEQ_INIT_SIZE;
-  seq->name      = malloc (cur_name_alloc);
-  seq->seq       = malloc (cur_seq_alloc);
+  seq->name_alloc = NAME_INIT_SIZE;
+  seq->seq_alloc  = SEQ_INIT_SIZE;
+  seq->name       = malloc (seq->name_alloc);
+  seq->seq        = malloc (seq->seq_alloc);
 
   while ((status = read (in, buffer, READ_CHUNK)) > 0)
     {
@@ -174,7 +176,7 @@ saft_fasta_iter (const char        *filename,
       while (start < max)
         {
           /* TODO handle '\r' */
-          char   *end = memchr (start, '\n', READ_CHUNK);
+          char   *end = memchr (start, '\n', max - start);
           size_t  size;
           int     has_eol = 0;
 
@@ -192,42 +194,44 @@ saft_fasta_iter (const char        *filename,
           if (in_header)
             {
               /* Check against size + 1 to make room for the terminating '\0' */
-              if (cur_name_alloc < cur_name_idx + size + 1)
+              if (seq->name_alloc < seq->name_length + size + 1)
                 {
-                  while (cur_name_alloc < cur_name_idx + size + 1)
-                    cur_name_alloc <<= 1;
-                  seq->name = realloc (seq->name, cur_name_alloc);
+                  while (seq->name_alloc < seq->name_length + size)
+                    seq->name_alloc <<= 1;
+                  seq->name = realloc (seq->name, seq->name_alloc);
                 }
               if (has_eol)
                   in_header = 0;
-              memcpy (seq->name + cur_name_idx + 1, start, size);
-              cur_name_idx += size;
+              memcpy (seq->name + seq->name_length, start, size);
+              seq->name_length += size;
             }
           else
             {
               if (*start == '>')
                 {
-                  seq->name[cur_name_idx + 1] = '\0';
-                  seq->seq[cur_seq_idx + 1] = '\0';
+                  seq->name[seq->name_length] = '\0';
+                  seq->seq[seq->seq_length]   = '\0';
                   if(!func (seq, data))
                     {
                       saft_fasta_free (seq);
                       close(in);
                       return;
                     }
+                  seq->name_length = 0;
+                  seq->seq_length  = 0;
                   ++start;
                   in_header = 1;
                   continue;
                 }
               /* Check against size + 1 to make room for the terminating '\0' */
-              if (cur_seq_alloc < cur_seq_idx + size + 1)
+              if (seq->seq_alloc < seq->seq_length + size + 1)
                 {
-                  while (cur_seq_alloc < cur_seq_idx + size + 1)
-                    cur_seq_alloc <<= 1;
-                  seq->seq = realloc (seq->seq, cur_seq_alloc);
+                  while (seq->seq_alloc < seq->seq_length + size)
+                    seq->seq_alloc <<= 1;
+                  seq->seq = realloc (seq->seq, seq->seq_alloc);
                 }
-              memcpy (seq->seq + cur_seq_idx + 1, start, size);
-              cur_seq_idx += size;
+              memcpy (seq->seq + seq->seq_length, start, size);
+              seq->seq_length += size;
             }
           start = end + 1;
         }
@@ -236,8 +240,8 @@ saft_fasta_iter (const char        *filename,
     saft_error ("An IO error occured while reading `%s'", filename);
   if (started)
     {
-      seq->name[cur_name_idx + 1] = '\0';
-      seq->seq[cur_seq_idx + 1] = '\0';
+      seq->name[seq->name_length] = '\0';
+      seq->seq[seq->seq_length]   = '\0';
       func (seq, data);
       saft_fasta_free (seq);
     }
