@@ -46,6 +46,8 @@ SaftFasta*    saft_fasta_new       (void);
 
 void          saft_fasta_free      (SaftFasta         *fasta);
 
+SaftFasta*    saft_fasta_copy      (SaftFasta         *fasta);
+
 SaftFasta**   saft_fasta_read      (const char        *filename,
                                     unsigned int      *n);
 
