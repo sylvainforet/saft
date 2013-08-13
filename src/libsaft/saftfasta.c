@@ -192,7 +192,7 @@ saft_fasta_iter (const char        *filename,
           if (in_header)
             {
               /* Check against size + 1 to make room for the terminating '\0' */
-              if (__builtin_expect (cur_name_alloc < cur_name_idx + size + 1, 0))
+              if (cur_name_alloc < cur_name_idx + size + 1)
                 {
                   while (cur_name_alloc < cur_name_idx + size + 1)
                     cur_name_alloc <<= 1;
@@ -220,7 +220,7 @@ saft_fasta_iter (const char        *filename,
                   continue;
                 }
               /* Check against size + 1 to make room for the terminating '\0' */
-              if (__builtin_expect (cur_seq_alloc < cur_seq_idx + size + 1, 0))
+              if (cur_seq_alloc < cur_seq_idx + size + 1)
                 {
                   while (cur_seq_alloc < cur_seq_idx + size + 1)
                     cur_seq_alloc <<= 1;
