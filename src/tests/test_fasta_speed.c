@@ -57,6 +57,8 @@ main (int    argc,
     saft_fasta_iter (path, iter_func, NULL);
   getrusage (RUSAGE_SELF, &ru_end);
 
+  printf ("Fasta speed results (%ld iterations on file `%s')\n",
+          iterations, path);
   printf ("User  : %ld.%06lds\n",
           ru_end.ru_utime.tv_sec - ru_start.ru_utime.tv_sec,
           ru_end.ru_utime.tv_usec - ru_start.ru_utime.tv_usec);
