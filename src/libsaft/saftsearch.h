@@ -23,7 +23,7 @@
 #define __SAFT_SEARCH_H__
 
 
-#include <safthash.h>
+#include "saftsequence.h"
 
 
 #ifdef __cplusplus
@@ -31,9 +31,98 @@ extern "C"
 {
 #endif
 
+typedef enum
+{
+  /* Frequencies are calculated based on the compostion of the query */
+  SAFT_FREQ_QUERY = 0,
+  /* Frequencies are calculated based on the compostion of the database */
+  SAFT_FREQ_SUBJECTS,
+  /* Frequencies are calculated based on the compostion of the database and the
+   * query */
+  SAFT_FREQ_QUERY_SUBJECTS,
+  /* Frequencies are provided by the user */
+  SAFT_FREQ_USER,
+  /* Uniform frequencies across the alphabet */
+  SAFT_FREQ_UNIFORM,
+  NB_SAFT_FREQUENCIES,
+  SAFT_UNKNOWN_FREQUENCY
+}
+SaftFreqType;
+
+typedef enum
+{
+  /* Generic saft program type to deal with any possible alphabet. In this case
+   * alphabet must be specified */
+  SAFT = 0,
+  /* Nucleotide query against nucleotide database */
+  SAFTN,
+  /* Protein query against protein database */
+  SAFTP,
+  /* Six frame translations of a nucleotide query against protein database */
+  SAFTX,
+  /* Protein query against six frame translation of a nucleotide database */
+  TSAFTN,
+  /* Six frame translations of a nucleotide query against six frame translation
+   * of a nucleotide database */
+  TSAFTX,
+  NB_SAFT_PROGRAMS,
+  SAFT_UNKNOWN_PROGRAM
+}
+SaftProgramType;
+
+char *saft_program_names[NB_SAFT_PROGRAMS] =
+{
+  [SAFT]   = "saft",
+  [SAFTN]  = "saftn",
+  [SAFTP]  = "saftp",
+  [SAFTX]  = "saftx",
+  [TSAFTN] = "tsaftn",
+  [TSAFTX] = "tsaftx"
+};
+
+
+/* TODO add an option for the type of p-value approximation.
+ * Gamma is generally better, but a normal approximation might be desirable if
+ * the sequences are large enough and speed is important */
+
+/******************/
+/* Search Options */
+/******************/
+
+typedef struct _SaftOptions SaftOptions;
+
+struct _SaftOptions
+{
+  char           *input_path;
+  char           *db_path;
+  char           *output_path;
+
+  SaftAlphabet   *alphabet;
+
+  double         *letter_frequencies;
+  double          p_max;
+
+  unsigned int    word_size;
+
+  unsigned int    verbosity;
+  int             show_max;
+
+  SaftProgramType program;
+  SaftFreqType    freq_type;
+
+  unsigned int     cache_db: 1;
+  unsigned int     cache_queries: 1;
+};
+
+SaftOptions* saft_options_new  (void);
+
+void         saft_options_free (SaftOptions *options);
+
 /**********/
 /* Result */
 /**********/
+
+/* The result of a pairwise comparison */
 
 typedef struct _SaftResult SaftResult;
 
@@ -55,35 +144,23 @@ void        saft_result_free (SaftResult *result);
 /* Search */
 /**********/
 
-typedef enum
-{
-  SAFT_FREQ_QUERY,
-  SAFT_FREQ_SUBJECTS,
-  SAFT_FREQ_QUERY_SUBJECTS,
-  SAFT_FREQ_USER,
-  SAFT_FREQ_UNIFORM
-}
-SaftFreqType;
+/* The results of scanning a sequence against a database */
 
 typedef struct _SaftSearch SaftSearch;
 
 struct _SaftSearch
 {
+  SaftSearch    *next;
   SaftSequence  *query;
-  SaftHTable    *htable;
-  double        *letters_frequencies;
-  unsigned int  *letters_counts;
   SaftResult    *results;
   SaftResult   **sorted_results;
-  unsigned int   word_size;
   unsigned int   n_results;
-  SaftFreqType   freq_type;
 };
 
 SaftSearch* saft_search_new             (SaftSequence *query,
                                          unsigned int  word_size,
                                          SaftFreqType  freq_type,
-                                         const double *letters_frequencies);
+                                         const double *letter_frequencies);
 
 void        saft_search_free            (SaftSearch   *search);
 
@@ -91,6 +168,40 @@ void        saft_search_add_subject     (SaftSearch   *search,
                                          SaftSequence *subject);
 
 void        saft_search_compute_pvalues (SaftSearch   *search);
+
+/********************/
+/* SaftSearchEngine */
+/********************/
+
+typedef struct _SaftSearchEngine SaftSearchEngine;
+
+struct _SaftSearchEngine
+{
+  /* Member variables */
+  SaftOptions  *options;
+
+  /* Virtual methods table */
+  SaftSearch*  (*search_two_sequences) (SaftSearchEngine *engine,
+                                        SaftSequence     *query,
+                                        SaftSequence     *subject);
+  SaftSearch** (*search_all)           (SaftSearchEngine *engine,
+                                        const char       *queries_path,
+                                        const char       *db_path);
+  void         (*free)                 (SaftSearchEngine *engine);
+
+};
+
+SaftSearchEngine* saft_search_engine_new    (SaftOptions      *options);
+
+void              saft_search_engine_free   (SaftSearchEngine *engine);
+
+SaftSearch*       saft_search_two_sequences (SaftSearchEngine *engine,
+                                             SaftSequence     *query,
+                                             SaftSequence     *subject);
+
+SaftSearch**      saft_search_all           (SaftSearchEngine *engine,
+                                             const char       *query_path,
+                                             const char       *db_path);
 
 #ifdef __cplusplus
 }

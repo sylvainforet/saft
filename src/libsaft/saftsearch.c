@@ -27,12 +27,49 @@
 #include "saftsearch.h"
 #include "saftstats.h"
 
+
 static void saft_search_adjust_pvalues (SaftSearch *search);
 
 static void saft_search_sort_results   (SaftSearch *search);
 
 static int  saft_result_pvalue_cmp_inc (const void *p1,
                                         const void *p2);
+
+
+/******************/
+/* Search Options */
+/******************/
+
+
+static SaftOptions*
+saft_options_new ()
+{
+  SaftOptions *options;
+
+  options                      = malloc (sizeof (*options));
+  options->input_path          = NULL;
+  options->db_path             = NULL;
+  options->output_path         = NULL;
+  options->alphabet            = NULL;
+  options->letter_frequencies  = NULL;
+  options->p_max               = 5e-2;
+  options->word_size           = 0;
+  options->verbosity           = 0;
+  options->show_max            = 50;
+  options->program             = SAFT_UNKNOWN_PROGRAM;
+  options->freq_type           = SAFT_FREQ_UNIFORM;
+  options->cache_db            = 0;
+  options->cache_queries       = 0;
+
+  return options;
+}
+
+static void
+saft_options_free (SaftOptions *options)
+{
+  if (options)
+    free (options);
+}
 
 
 /**********/
@@ -75,7 +112,7 @@ SaftSearch*
 saft_search_new (SaftSequence *query,
                  unsigned int  word_size,
                  SaftFreqType  freq_type,
-                 const double *letters_frequencies)
+                 const double *letter_frequencies)
 {
   SaftSearch *search;
 
@@ -84,7 +121,7 @@ saft_search_new (SaftSequence *query,
   search->word_size           = word_size;
   search->freq_type           = freq_type;
   search->htable              = saft_htable_new (query->alphabet, search->word_size);
-  search->letters_frequencies = malloc (query->alphabet->size * sizeof (*search->letters_frequencies));
+  search->letter_frequencies  = malloc (query->alphabet->size * sizeof (*search->letter_frequencies));
   search->letters_counts      = malloc (query->alphabet->size * sizeof (*search->letters_counts));
   search->results             = NULL;
   search->sorted_results      = NULL;
@@ -111,7 +148,7 @@ saft_search_new (SaftSequence *query,
       unsigned int i;
 
       for (i = 0; i < query->alphabet->size; i++)
-        search->letters_frequencies[i] = letters_frequencies[i];
+        search->letter_frequencies[i] = letter_frequencies[i];
     }
   else /* Assume uniform (SAFT_FREQ_UNIFORM) by default */
     {
@@ -133,8 +170,8 @@ saft_search_free (SaftSearch *search)
         saft_sequence_free (search->query);
       if (search->htable)
         saft_htable_free (search->htable);
-      if (search->letters_frequencies)
-        free (search->letters_frequencies);
+      if (search->letter_frequencies)
+        free (search->letter_frequencies);
       if (search->letters_counts)
         free (search->letters_counts);
       if (search->results)
@@ -192,11 +229,11 @@ saft_search_compute_pvalues (SaftSearch *search)
       for (i = 0; i < search->query->alphabet->size; i++)
         total += search->letters_counts[i];
       for (i = 0; i < search->query->alphabet->size; i++)
-        search->letters_frequencies[i] = ((double)search->letters_counts[i]) / total;
+        search->letter_frequencies[i] = ((double)search->letters_counts[i]) / total;
     }
 
   context = saft_stats_context_new (search->word_size,
-                                    search->letters_frequencies,
+                                    search->letter_frequencies,
                                     search->query->alphabet->size);
 
   for (result = search->results; result; result = result->next)
@@ -256,6 +293,57 @@ saft_result_pvalue_cmp_inc (const void *p1,
   if ((*res1)->p_value > (*res2)->p_value)
     return 1;
   return -1;
+}
+
+
+/********************/
+/* SaftSearchEngine */
+/********************/
+
+SaftSearchEngine*
+saft_search_engine_new (SaftOptions *options)
+{
+  if (options->alphabet == SaftAlphabetDNA)
+    {
+      if (options->word_size <= 8)
+        {
+          /* Array based DNA engine */
+        }
+      else
+        {
+          /* Hash-Table based DNA engine */
+        }
+    }
+  else
+    {
+      /* Generic engine */
+    }
+}
+
+void
+saft_search_engine_free (SaftSearchEngine *engine)
+{
+  engine->free (engine);
+}
+
+SaftSearch*
+saft_search_two_sequences (SaftSearchEngine *engine,
+                           SaftSequence     *query,
+                           SaftSequence     *subject)
+{
+  return engine->search_two_sequences (engine,
+                                       query,
+                                       subject);
+}
+
+SaftSearch**
+saft_search_all (SaftSearchEngine *engine,
+                 const char       *query_path,
+                 const char       *db_path)
+{
+  return engine->search_all (engine,
+                             query_path,
+                             db_path);
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
