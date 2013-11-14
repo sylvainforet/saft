@@ -66,6 +66,26 @@ extern SaftAlphabet SaftAlphabetProtein;
 /* Sequence */
 /************/
 
+typedef struct _SaftSequence SaftSequence;
+
+struct _SaftSequence
+{
+  char   *name;
+  char   *seq;
+
+  size_t  name_length;
+  size_t  seq_length;
+
+  size_t  name_alloc;
+  size_t  seq_alloc;
+};
+
+SaftSequence* saft_sequence_new  (void);
+
+void          saft_sequence_free (SaftSequence *seq);
+
+SaftSequence* saft_sequence_copy (SaftSequence *seq);
+
 /* TODO add functions for six frame translations */
 
 #ifdef __cplusplus

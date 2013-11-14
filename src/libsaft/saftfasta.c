@@ -39,59 +39,16 @@ typedef struct _SaftFastaParseData SaftFastaParseData;
 
 struct _SaftFastaParseData
 {
-  SaftFasta **seqs;
-  int         idx;
-  int         alloc;
+  SaftSequence **seqs;
+  int            idx;
+  int            alloc;
 };
 
-static int saft_fasta_append (SaftFasta          *fasta,
+static int saft_fasta_append (SaftSequence       *seq,
                               SaftFastaParseData *data);
 
 
-SaftFasta*
-saft_fasta_new ()
-{
-  SaftFasta *fasta;
-
-  fasta              = malloc (sizeof (*fasta));
-  fasta->name        = NULL;
-  fasta->seq         = NULL;
-
-  fasta->name_length = 0;
-  fasta->seq_length  = 0;
-
-  fasta->name_alloc  = 0;
-  fasta->seq_alloc   = 0;
-
-  return fasta;
-}
-
-void
-saft_fasta_free (SaftFasta *fasta)
-{
-  if (fasta)
-    {
-      if (fasta->name)
-        free (fasta->name);
-      if (fasta->seq)
-        free (fasta->seq);
-      free (fasta);
-    }
-}
-
-SaftFasta*
-saft_fasta_copy (SaftFasta *fasta)
-{
-  SaftFasta *new_fasta;
-
-  new_fasta       = saft_fasta_new ();
-  new_fasta->name = strdup (fasta->name);
-  new_fasta->seq  = strdup (fasta->seq);
-
-  return new_fasta;
-}
-
-SaftFasta**
+SaftSequence**
 saft_fasta_read (const char   *filename,
                  unsigned int *n)
 {
@@ -113,12 +70,12 @@ saft_fasta_read (const char   *filename,
 }
 
 static int
-saft_fasta_append (SaftFasta          *fasta,
+saft_fasta_append (SaftSequence       *seq,
                    SaftFastaParseData *data)
 {
-  SaftFasta *new_fasta;
+  SaftSequence *new_seq;
 
-  new_fasta = saft_fasta_copy (fasta);
+  new_seq = saft_sequence_copy (seq);
 
   /* Add +1 to make space for the terminal NULL */
   if (data->idx + 1 >= data->alloc)
@@ -126,7 +83,7 @@ saft_fasta_append (SaftFasta          *fasta,
       data->alloc <<= 1;
       data->seqs    = realloc (data->seqs, data->alloc * sizeof (*data->seqs));
     }
-  data->seqs[data->idx] = new_fasta;
+  data->seqs[data->idx] = new_seq;
   data->idx++;
 
   return 1;
@@ -137,12 +94,12 @@ saft_fasta_iter (const char        *filename,
                  SaftFastaIterFunc  func,
                  void              *data)
 {
-  char        buffer[READ_CHUNK];
-  SaftFasta  *seq              = NULL;
-  int         in               = -1;
-  int         status           = -1;
-  char        in_header        =  0;
-  char        started          =  0;
+  char           buffer[READ_CHUNK];
+  SaftSequence  *seq              = NULL;
+  int            in               = -1;
+  int            status           = -1;
+  char           in_header        =  0;
+  char           started          =  0;
 
   if ((in = open (filename, O_RDONLY | O_NONBLOCK)) == -1)
     {
@@ -150,7 +107,7 @@ saft_fasta_iter (const char        *filename,
       return;
     }
 
-  seq = saft_fasta_new ();
+  seq             = saft_sequence_new ();
   seq->name_alloc = NAME_INIT_SIZE;
   seq->seq_alloc  = SEQ_INIT_SIZE;
   seq->name       = malloc (seq->name_alloc);
@@ -213,7 +170,7 @@ saft_fasta_iter (const char        *filename,
                   seq->seq[seq->seq_length]   = '\0';
                   if(!func (seq, data))
                     {
-                      saft_fasta_free (seq);
+                      saft_sequence_free (seq);
                       close(in);
                       return;
                     }
@@ -243,56 +200,9 @@ saft_fasta_iter (const char        *filename,
       seq->name[seq->name_length] = '\0';
       seq->seq[seq->seq_length]   = '\0';
       func (seq, data);
-      saft_fasta_free (seq);
+      saft_sequence_free (seq);
     }
   close (in);
-}
-
-SaftSequence*
-saft_fasta_to_seq (SaftFasta    *fasta,
-                   SaftAlphabet *alphabet)
-{
-  SaftSequence  *seq;
-  SaftSegment   *segment = NULL;
-  unsigned char *tmp_f;
-  SaftLetter    *tmp_s;
-  unsigned int   in_segment;
-
-  seq           = saft_sequence_new ();
-  seq->alphabet = alphabet;
-  seq->name     = strdup (fasta->name);
-  seq->size     = strlen (fasta->seq);
-  seq->seq      = malloc (seq->size * sizeof (*seq->seq));
-  tmp_f         = (unsigned char *)fasta->seq;
-  tmp_s         = seq->seq - 1;
-
-  in_segment = 0;
-  while (*tmp_f)
-    {
-      *++tmp_s = alphabet->codes[*tmp_f++];
-      if (*tmp_s == 0)
-        {
-          /* FIXME only issue an error when the number of unknown letters is `large'
-          saft_error ("Encountered symbol `%d' unknown in alphabet `%s'",
-                      *tmp_s, alphabet->name);
-          */
-          if (in_segment)
-            in_segment = 0;
-        }
-      else
-        {
-          if (!in_segment)
-            {
-              in_segment    = 1;
-              segment       = saft_segment_new ();
-              segment->seq  = tmp_s;
-              segment->next = seq->segments;
-              seq->segments = segment;
-            }
-          segment->size++;
-        }
-    }
-  return seq;
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:

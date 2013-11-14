@@ -29,40 +29,15 @@ extern "C"
 {
 #endif
 
-/* A sequence read from a fasta formated file */
+typedef int    (*SaftFastaIterFunc) (SaftSequence      *sequence,
+                                     void              *data);
 
-typedef struct _SaftFasta SaftFasta;
+SaftSequence** saft_fasta_read      (const char        *filename,
+                                     unsigned int      *n);
 
-struct _SaftFasta
-{
-  char   *name;
-  char   *seq;
-
-  size_t  name_length;
-  size_t  seq_length;
-
-  size_t  name_alloc;
-  size_t  seq_alloc;
-};
-
-typedef int   (*SaftFastaIterFunc) (SaftFasta         *fasta,
-                                    void              *data);
-
-SaftFasta*    saft_fasta_new       (void);
-
-void          saft_fasta_free      (SaftFasta         *fasta);
-
-SaftFasta*    saft_fasta_copy      (SaftFasta         *fasta);
-
-SaftFasta**   saft_fasta_read      (const char        *filename,
-                                    unsigned int      *n);
-
-void          saft_fasta_iter      (const char        *filename,
-                                    SaftFastaIterFunc  func,
-                                    void              *data);
-
-SaftSequence* saft_fasta_to_seq    (SaftFasta         *fasta,
-                                    SaftAlphabet      *alphabet);
+void           saft_fasta_iter      (const char        *filename,
+                                     SaftFastaIterFunc  func,
+                                     void              *data);
 
 #ifdef __cplusplus
 }

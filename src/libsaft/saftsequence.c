@@ -126,5 +126,52 @@ saft_alphabet_free (SaftAlphabet *alphabet)
     }
 }
 
+/************/
+/* Sequence */
+/************/
+
+SaftSequence*
+saft_sequence_new ()
+{
+  SaftSequence *seq;
+
+  seq              = malloc (sizeof (*seq));
+  seq->name        = NULL;
+  seq->seq         = NULL;
+
+  seq->name_length = 0;
+  seq->seq_length  = 0;
+
+  seq->name_alloc  = 0;
+  seq->seq_alloc   = 0;
+
+  return seq;
+}
+
+void
+saft_sequence_free (SaftSequence *seq)
+{
+  if (seq)
+    {
+      if (seq->name)
+        free (seq->name);
+      if (seq->seq)
+        free (seq->seq);
+      free (seq);
+    }
+}
+
+SaftSequence*
+saft_sequence_copy (SaftSequence *seq)
+{
+  SaftSequence *new_seq;
+
+  new_seq       = saft_sequence_new ();
+  new_seq->name = strdup (seq->name);
+  new_seq->seq  = strdup (seq->seq);
+
+  return new_seq;
+}
+
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
  */
