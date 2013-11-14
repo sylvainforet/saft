@@ -6,6 +6,7 @@ SUBDIRS = src
 MAINTAINERCLEANFILES =	\
 	Makefile.in	\
 	aclocal.m4	\
+	compile		\
 	config.h.in	\
 	config.log	\
 	config.guess	\
