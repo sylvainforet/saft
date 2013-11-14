@@ -126,48 +126,24 @@ saft_alphabet_free (SaftAlphabet *alphabet)
     }
 }
 
-/***********/
-/* Segment */
-/***********/
-
-SaftSegment*
-saft_segment_new ()
-{
-  SaftSegment *segment;
-
-  segment       = malloc (sizeof (*segment));
-  segment->next = NULL;
-  segment->seq  = NULL;
-  segment->size = 0;
-
-  return segment;
-}
-
-void
-saft_segment_free (SaftSegment *segment)
-{
-  if (segment)
-    {
-      saft_segment_free (segment->next);
-      free (segment);
-    }
-}
-
 /************/
 /* Sequence */
 /************/
 
 SaftSequence*
-saft_sequence_new (void)
+saft_sequence_new ()
 {
   SaftSequence *seq;
 
-  seq           = malloc (sizeof (*seq));
-  seq->name     = NULL;
-  seq->alphabet = NULL;
-  seq->seq      = NULL;
-  seq->segments = NULL;
-  seq->size     = 0;
+  seq              = malloc (sizeof (*seq));
+  seq->name        = NULL;
+  seq->seq         = NULL;
+
+  seq->name_length = 0;
+  seq->seq_length  = 0;
+
+  seq->name_alloc  = 0;
+  seq->seq_alloc   = 0;
 
   return seq;
 }
@@ -185,35 +161,16 @@ saft_sequence_free (SaftSequence *seq)
     }
 }
 
-char*
-saft_sequence_to_string (SaftSequence *seq)
+SaftSequence*
+saft_sequence_copy (SaftSequence *seq)
 {
-  char*        ret;
-  unsigned int i;
+  SaftSequence *new_seq;
 
-  ret = malloc ((seq->size + 1) * sizeof (*ret));
-  for (i = 0; i < seq->size; i++)
-    ret[i] = seq->alphabet->letters[seq->seq[i]];
-  ret[i] = '\0';
+  new_seq       = saft_sequence_new ();
+  new_seq->name = strdup (seq->name);
+  new_seq->seq  = strdup (seq->seq);
 
-  return ret;
-}
-
-/*************/
-/* Sequences */
-/*************/
-
-void
-saft_sequences_iter (SaftSequence  **sequences,
-                     SaftSeqIterFunc func,
-                     void           *data)
-{
-  while (*sequences)
-    {
-      if (!func (*sequences, data))
-        return;
-      sequences++;
-    }
+  return new_seq;
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:
