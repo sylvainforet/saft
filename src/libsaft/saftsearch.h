@@ -70,7 +70,7 @@ typedef enum
 }
 SaftProgramType;
 
-char *saft_program_names[NB_SAFT_PROGRAMS] =
+const char *saft_program_names[NB_SAFT_PROGRAMS] =
 {
   [SAFT]   = "saft",
   [SAFTN]  = "saftn",
@@ -110,8 +110,8 @@ struct _SaftOptions
   SaftProgramType program;
   SaftFreqType    freq_type;
 
-  unsigned int     cache_db: 1;
-  unsigned int     cache_queries: 1;
+  unsigned int    cache_db: 1;
+  unsigned int    cache_queries: 1;
 };
 
 SaftOptions* saft_options_new  (void);
@@ -130,10 +130,11 @@ struct _SaftResult
 {
   SaftResult  *next;
   char        *name;
-  unsigned int d2;
-  unsigned int subject_size;
   double       p_value;
   double       p_value_adj;
+  unsigned int d2;
+  unsigned int subject_size;
+  char         frame;
 };
 
 SaftResult* saft_result_new  (void);
@@ -157,17 +158,12 @@ struct _SaftSearch
   unsigned int   n_results;
 };
 
-SaftSearch* saft_search_new             (SaftSequence *query,
-                                         unsigned int  word_size,
-                                         SaftFreqType  freq_type,
-                                         const double *letter_frequencies);
+SaftSearch* saft_search_new             (void);
 
 void        saft_search_free            (SaftSearch   *search);
 
-void        saft_search_add_subject     (SaftSearch   *search,
-                                         SaftSequence *subject);
-
-void        saft_search_compute_pvalues (SaftSearch   *search);
+void        saft_search_compute_pvalues (SaftSearch   *search,
+                                         SaftOptions  *options);
 
 /********************/
 /* SaftSearchEngine */
@@ -181,13 +177,13 @@ struct _SaftSearchEngine
   SaftOptions  *options;
 
   /* Virtual methods table */
-  SaftSearch*  (*search_two_sequences) (SaftSearchEngine *engine,
-                                        SaftSequence     *query,
-                                        SaftSequence     *subject);
-  SaftSearch** (*search_all)           (SaftSearchEngine *engine,
-                                        const char       *queries_path,
-                                        const char       *db_path);
-  void         (*free)                 (SaftSearchEngine *engine);
+  SaftSearch* (*search_two_sequences) (SaftSearchEngine *engine,
+                                       SaftSequence     *query,
+                                       SaftSequence     *subject);
+  SaftSearch* (*search_all)           (SaftSearchEngine *engine,
+                                       const char       *queries_path,
+                                       const char       *db_path);
+  void        (*free)                 (SaftSearchEngine *engine);
 
 };
 
@@ -199,7 +195,7 @@ SaftSearch*       saft_search_two_sequences (SaftSearchEngine *engine,
                                              SaftSequence     *query,
                                              SaftSequence     *subject);
 
-SaftSearch**      saft_search_all           (SaftSearchEngine *engine,
+SaftSearch*       saft_search_all           (SaftSearchEngine *engine,
                                              const char       *query_path,
                                              const char       *db_path);
 

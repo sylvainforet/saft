@@ -32,27 +32,6 @@
 #include "saftsearch.h"
 
 
-typedef enum
-{
-  SAFTN = 0,
-  SAFTP,
-  SAFTX,
-  TSAFTN,
-  TSAFTX,
-  NB_SAFT_PROGRAMS,
-  SAFT_UNKNOWN_PROGRAM
-}
-SaftProgramType;
-
-static char *saft_program_names[NB_SAFT_PROGRAMS] =
-{
-  [SAFTN]  = "saftn",
-  [SAFTP]  = "saftp",
-  [SAFTX]  = "saftx",
-  [TSAFTN] = "tsaftn",
-  [TSAFTX] = "tsaftx",
-};
-
 typedef struct _SaftOptDesc SaftOptDesc;
 
 struct _SaftOptDesc
@@ -63,24 +42,6 @@ struct _SaftOptDesc
   char *description;
 };
 
-typedef struct _SaftOptions SaftOptions;
-
-struct _SaftOptions
-{
-  char           *input_path;
-  char           *db_path;
-  char           *output_path;
-  double          p_max;
-  unsigned int    word_size;
-  unsigned int    verbosity;
-  int             show_max;
-  SaftProgramType program;
-};
-
-static SaftOptions* saft_options_new  (void);
-
-static void         saft_options_free (SaftOptions *options);
-
 static SaftOptDesc opt_desc[] =
 {
     /* Program information */
@@ -88,7 +49,7 @@ static SaftOptDesc opt_desc[] =
     {"version",  no_argument,       'V', "Prints the program's version"},
     /* General options */
     {"verbose",  no_argument,       'v', "Increases the program's verbosity"},
-    /* FIXME multi threading options */
+    /* TODO multi threading options ? */
     /* Input / Output */
     {"input",    required_argument, 'i', "Path to the input file"},
     {"database", required_argument, 'd', "Path to the database to search"},
@@ -100,6 +61,12 @@ static SaftOptDesc opt_desc[] =
     {"pmax",     required_argument, 'e', "Show results with a p-value smaller than this"},
     /* FIXME add option for the frequencies */
     /* FIXME add option to choose the strand(s) of the query */
+
+    /* TODO We could have an extra mechanism to add engine specific options */
+    /* The two options below could be implemented with that mechanism */
+    /* This would be analogous to the -o option of 'mount' */
+    {"cacheq",   no_argument,       'q', "Cache the queries in memory (only used by some engines)"},
+    {"cached",   no_argument,       'a', "Cache the database in memory (only used by some engines)"},
     {NULL, 0, 0, NULL}
 };
 
@@ -197,6 +164,12 @@ main (int    argc,
                   goto cleanup;
                 }
               break;
+          case 'q':
+              options->cache_queries = 1;
+              break;
+          case 'a':
+              options->cache_db = 1;
+              break;
           default:
               saft_main_usage (argv[0]);
               ret = 1;
@@ -279,7 +252,7 @@ saft_main_help (char *argv0)
 
   for (i = 0; opt_desc[i].name; i++)
     printf ("  --%-*s (-%c) : %s\n",
-            longest,
+            (int)longest,
             opt_desc[i].name,
             opt_desc[i].val,
             opt_desc[i].description);
@@ -301,86 +274,26 @@ saft_main_program_type (char *program)
   return SAFT_UNKNOWN_PROGRAM;
 }
 
-static SaftOptions*
-saft_options_new ()
-{
-  SaftOptions *options;
-
-  options              = malloc (sizeof (*options));
-  options->input_path  = NULL;
-  options->db_path     = NULL;
-  options->output_path = NULL;
-  options->p_max       = 5e-2;
-  options->word_size   = 0;
-  options->verbosity   = 0;
-  options->show_max    = 50;
-  options->program     = SAFT_UNKNOWN_PROGRAM;
-
-  return options;
-}
-
-static void
-saft_options_free (SaftOptions *options)
-{
-  if (options)
-    free (options);
-}
-
 static int
 saft_main_search (SaftOptions *options)
 {
-  SaftAlphabet *alphabet;
-  SaftFasta   **fasta_queries;
-  SaftFasta   **fasta_subjects;
-  FILE         *out_stream;
-  unsigned int  n_fasta_queries;
-  unsigned int  n_fasta_subjects;
-  unsigned int  i;
-  unsigned int  j;
-
-  switch (options->program)
-    {
-      case SAFTN:
-          alphabet = &SaftAlphabetDNA;
-          break;
-      case SAFTP:
-          alphabet = &SaftAlphabetProtein;
-          break;
-      default:
-      saft_error ("Only `saftp' and `saftn' are (partially) implemented");
-      return 1;
-    }
+  SaftSearchEngine *engine;
+  SaftSearch       *searches;
+  SaftSearch       *search;
+  FILE             *out_stream;
 
   if (options->output_path == NULL)
     out_stream = stdout;
   else if ((out_stream = fopen (options->output_path, "w")) == NULL) 
-      {
-        saft_error ("Could not open output file");
-        return 1;
-      }
-  /* FIXME This requires loading the whole stuff into memory, probably not the
-   * best thing to do if there are many queries or if the database is very big
-   */
-  fasta_queries  = saft_fasta_read (options->input_path,
-                                    &n_fasta_queries);
-  fasta_subjects = saft_fasta_read (options->db_path,
-                                    &n_fasta_subjects);
-  for (i = 0; i < n_fasta_queries; i++)
     {
-      SaftSequence *query  = saft_fasta_to_seq (fasta_queries[i],
-                                                alphabet);
-      SaftSearch   *search = saft_search_new (query,
-                                              options->word_size,
-                                              SAFT_FREQ_UNIFORM,
-                                              NULL);
-      for (j = 0; j < n_fasta_subjects; j++)
-        {
-          SaftSequence *subject = saft_fasta_to_seq (fasta_subjects[j],
-                                                     alphabet);
-          saft_search_add_subject (search, subject);
-          saft_sequence_free (subject);
-        }
-      saft_search_compute_pvalues (search);
+      saft_error ("Could not open output file");
+      return 1;
+    }
+  engine   = saft_search_engine_new (options);
+  searches = saft_search_all (engine, options->input_path, options->db_path);
+  /* Could write directly from the engine ... */
+  for (search = searches; search != NULL; search = search->next)
+    {
       saft_main_write_search (options,
                               search,
                               out_stream);
@@ -405,7 +318,7 @@ saft_main_write_search (SaftOptions *options,
   fprintf (stream, "Query: %s program: %s word size: %d\n",
            search->query->name,
            saft_program_names[options->program],
-           search->word_size);
+           options->word_size);
   for (i = 0;
        i < options->show_max &&
        search->sorted_results[i]->p_value_adj <= options->p_max;

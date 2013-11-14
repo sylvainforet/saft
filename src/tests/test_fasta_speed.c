@@ -32,8 +32,8 @@
 #define INPUT      "nuc_100.fasta"
 
 
-static int iter_func (SaftFasta *fasta,
-                      void      *data);
+static int iter_func (SaftSequence *seq,
+                      void         *data);
 
 int
 main (int    argc,
@@ -70,8 +70,8 @@ main (int    argc,
 }
 
 static int
-iter_func (SaftFasta *fasta,
-           void      *data)
+iter_func (SaftSequence *sequence,
+           void         *data)
 {
   return 1;
 }

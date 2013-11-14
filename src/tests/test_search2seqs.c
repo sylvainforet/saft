@@ -30,6 +30,7 @@ int
 main (int    argc,
       char **argv)
 {
+  /*
   SaftFasta   **seqs;
   SaftFasta   **tmp;
   unsigned int  word_size;
@@ -67,6 +68,7 @@ main (int    argc,
   while (*++tmp)
     saft_fasta_free (*tmp);
   free (seqs);
+  */
 
   return 0;
 }

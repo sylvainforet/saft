@@ -105,6 +105,7 @@ void
 saft_htable_add_query (SaftHTable   *table,
                        SaftSequence *seq)
 {
+  /*
   SaftSegment *segment;
   SaftLetter  *start;
   unsigned int i;
@@ -148,12 +149,14 @@ found:
         }
       while (i < segment->size);
     }
+    */
 }
 
 void
 saft_htable_add_subject (SaftHTable   *table,
                          SaftSequence *seq)
 {
+  /*
   SaftSegment *segment;
   SaftLetter  *start;
   unsigned int i;
@@ -191,6 +194,7 @@ saft_htable_add_subject (SaftHTable   *table,
         }
       while (i < segment->size);
     }
+    */
 }
 
 void

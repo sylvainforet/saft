@@ -29,9 +29,9 @@ int
 main (int    argc,
       char **argv)
 {
-  SaftFasta   **seqs;
-  SaftFasta   **tmp;
-  unsigned int  n;
+  SaftSequence **seqs;
+  SaftSequence **tmp;
+  unsigned int   n;
 
   if (argc < 2)
     {
@@ -43,20 +43,13 @@ main (int    argc,
   tmp  = seqs - 1;
   while (*++tmp)
     {
-      SaftSequence *seq;
-      char          *str;
-
-      seq = saft_fasta_to_seq (*tmp, &SaftAlphabetDNA);
-      printf (">%s\n", seq->name);
-      str = saft_sequence_to_string (seq);
-      printf ("%s\n", str);
-      free (str);
-      saft_sequence_free (seq);
+      printf (">%s\n", (*tmp)->name);
+      printf ("%s\n", (*tmp)->seq);
     }
 
   tmp = seqs - 1;
   while (*++tmp)
-    saft_fasta_free (*tmp);
+    saft_sequence_free (*tmp);
   free (seqs);
 
   return 0;

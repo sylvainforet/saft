@@ -171,6 +171,7 @@ saft_fasta_iter (const char        *filename,
                   if(!func (seq, data))
                     {
                       saft_sequence_free (seq);
+                      /* TODO print an error message */
                       close(in);
                       return;
                     }

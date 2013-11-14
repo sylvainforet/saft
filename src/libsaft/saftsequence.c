@@ -166,9 +166,13 @@ saft_sequence_copy (SaftSequence *seq)
 {
   SaftSequence *new_seq;
 
-  new_seq       = saft_sequence_new ();
-  new_seq->name = strdup (seq->name);
-  new_seq->seq  = strdup (seq->seq);
+  new_seq              = saft_sequence_new ();
+  new_seq->name        = strdup (seq->name);
+  new_seq->seq         = strdup (seq->seq);
+  new_seq->name_length = seq->name_length;
+  new_seq->seq_length  = seq->seq_length;
+  new_seq->name_alloc  = seq->name_length + 1;
+  new_seq->seq_alloc   = seq->seq_length + 1;
 
   return new_seq;
 }

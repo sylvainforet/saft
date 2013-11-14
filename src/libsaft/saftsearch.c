@@ -41,7 +41,7 @@ static int  saft_result_pvalue_cmp_inc (const void *p1,
 /******************/
 
 
-static SaftOptions*
+SaftOptions*
 saft_options_new ()
 {
   SaftOptions *options;
@@ -64,7 +64,7 @@ saft_options_new ()
   return options;
 }
 
-static void
+void
 saft_options_free (SaftOptions *options)
 {
   if (options)
@@ -109,54 +109,15 @@ saft_result_free (SaftResult *result)
 /**********/
 
 SaftSearch*
-saft_search_new (SaftSequence *query,
-                 unsigned int  word_size,
-                 SaftFreqType  freq_type,
-                 const double *letter_frequencies)
+saft_search_new ()
 {
   SaftSearch *search;
 
-  search                      = malloc (sizeof (*search));
-  search->query               = query;
-  search->word_size           = word_size;
-  search->freq_type           = freq_type;
-  search->htable              = saft_htable_new (query->alphabet, search->word_size);
-  search->letter_frequencies  = malloc (query->alphabet->size * sizeof (*search->letter_frequencies));
-  search->letters_counts      = malloc (query->alphabet->size * sizeof (*search->letters_counts));
-  search->results             = NULL;
-  search->sorted_results      = NULL;
-  search->n_results           = 0;
-  saft_htable_add_query (search->htable, search->query);
-
-  if (search->freq_type == SAFT_FREQ_QUERY ||
-      search->freq_type == SAFT_FREQ_QUERY_SUBJECTS)
-    {
-      SaftSegment *segment;
-
-      for (segment = query->segments; segment; segment = segment->next)
-        {
-          unsigned int i;
-
-          for (i = 0; i < segment->size; i++)
-            /* (segment->seq[i] - 1) because there should not be any `0' letter
-             * left at this stage */
-            search->letters_counts[segment->seq[i] - 1]++;
-        }
-    }
-  else if (search->freq_type == SAFT_FREQ_USER)
-    {
-      unsigned int i;
-
-      for (i = 0; i < query->alphabet->size; i++)
-        search->letter_frequencies[i] = letter_frequencies[i];
-    }
-  else /* Assume uniform (SAFT_FREQ_UNIFORM) by default */
-    {
-      unsigned int i;
-
-      for (i = 0; i < query->alphabet->size; i++)
-        search->letters_counts[i] = 1;
-    }
+  search                 = malloc (sizeof (*search));
+  search->query          = NULL;
+  search->results        = NULL;
+  search->sorted_results = NULL;
+  search->n_results      = 0;
 
   return search;
 }
@@ -168,12 +129,6 @@ saft_search_free (SaftSearch *search)
     {
       if (search->query)
         saft_sequence_free (search->query);
-      if (search->htable)
-        saft_htable_free (search->htable);
-      if (search->letter_frequencies)
-        free (search->letter_frequencies);
-      if (search->letters_counts)
-        free (search->letters_counts);
       if (search->results)
         saft_result_free (search->results);
       if (search->sorted_results)
@@ -183,46 +138,15 @@ saft_search_free (SaftSearch *search)
 }
 
 void
-saft_search_add_subject (SaftSearch   *search,
-                         SaftSequence *subject)
+saft_search_compute_pvalues (SaftSearch  *search,
+                             SaftOptions *options)
 {
-  SaftResult *result;
-
-  saft_htable_add_subject (search->htable, subject);
-  result               = saft_result_new ();
-  result->d2           = saft_htable_d2 (search->htable);
-  result->name         = strdup (subject->name);
-  result->subject_size = subject->size;
-  result->next         = search->results;
-  search->results      = result;
-  search->n_results++;
-
-  if (search->freq_type == SAFT_FREQ_SUBJECTS ||
-      search->freq_type == SAFT_FREQ_QUERY_SUBJECTS)
-    {
-      SaftSegment *segment;
-
-      for (segment = subject->segments; segment; segment = segment->next)
-        {
-          unsigned int i;
-
-          for (i = 0; i < segment->size; i++)
-            /* (segment->seq[i] - 1) because there should not be any `0' letter
-             * left at this stage */
-            search->letters_counts[segment->seq[i] - 1]++;
-        }
-    }
-  saft_htable_clear_subject (search->htable);
-}
-
-void
-saft_search_compute_pvalues (SaftSearch *search)
-{
+  /*
   SaftStatsContext *context;
   SaftResult       *result;
   unsigned int      i;
 
-  if (search->freq_type != SAFT_FREQ_USER)
+  if (options->freq_type != SAFT_FREQ_USER)
     {
       unsigned int total = 0;
 
@@ -247,6 +171,7 @@ saft_search_compute_pvalues (SaftSearch *search)
       result->p_value   = saft_stats_pgamma_m_v (result->d2, mean, var);
     }
 
+  */
   saft_search_adjust_pvalues (search);
 }
 
@@ -303,7 +228,7 @@ saft_result_pvalue_cmp_inc (const void *p1,
 SaftSearchEngine*
 saft_search_engine_new (SaftOptions *options)
 {
-  if (options->alphabet == SaftAlphabetDNA)
+  if (options->program == SAFTN)
     {
       if (options->word_size <= 8)
         {
@@ -318,6 +243,7 @@ saft_search_engine_new (SaftOptions *options)
     {
       /* Generic engine */
     }
+  return NULL;
 }
 
 void
@@ -336,7 +262,7 @@ saft_search_two_sequences (SaftSearchEngine *engine,
                                        subject);
 }
 
-SaftSearch**
+SaftSearch*
 saft_search_all (SaftSearchEngine *engine,
                  const char       *query_path,
                  const char       *db_path)
