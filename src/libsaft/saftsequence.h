@@ -62,54 +62,11 @@ void          saft_alphabet_free (SaftAlphabet *alphabet);
 extern SaftAlphabet SaftAlphabetDNA;
 extern SaftAlphabet SaftAlphabetProtein;
 
-/***********/
-/* Segment */
-/***********/
-
-typedef struct _SaftSegment SaftSegment;
-
-struct _SaftSegment
-{
-  SaftSegment *next;
-  SaftLetter  *seq;
-  unsigned int size;
-};
-
-SaftSegment* saft_segment_new  (void);
-
-void         saft_segment_free (SaftSegment *segment);
-
 /************/
 /* Sequence */
 /************/
 
-typedef struct _SaftSequence SaftSequence;
-
-struct _SaftSequence
-{
-  char          *name;
-  SaftAlphabet  *alphabet;
-  SaftLetter    *seq;
-  SaftSegment   *segments;
-  unsigned int   size;
-};
-
-SaftSequence* saft_sequence_new       (void);
-
-void          saft_sequence_free      (SaftSequence *seq);
-
-char*         saft_sequence_to_string (SaftSequence *seq);
-
-/*************/
-/* Sequences */
-/*************/
-
-typedef int (*SaftSeqIterFunc)  (SaftSequence   *seq,
-                                 void           *data);
-
-void        saft_sequences_iter (SaftSequence  **sequences,
-                                 SaftSeqIterFunc func,
-                                 void           *data);
+/* TODO add functions for six frame translations */
 
 #ifdef __cplusplus
 }
