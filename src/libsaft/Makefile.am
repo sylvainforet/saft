@@ -12,6 +12,7 @@ libsaft_sources =		\
 	saftfasta.c		\
 	safthash.c		\
 	saftsearch.c		\
+	saftsearchengines.c	\
 	saftsequence.c		\
 	saftstats.c
 
@@ -20,6 +21,7 @@ libsaft_headers =		\
 	saftfasta.h		\
 	safthash.h		\
 	saftsearch.h		\
+	saftsearchengines.h	\
 	saftsequence.h		\
 	saftstats.h
 

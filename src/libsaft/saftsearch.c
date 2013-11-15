@@ -28,6 +28,17 @@
 #include "saftstats.h"
 
 
+const char *saft_program_names[NB_SAFT_PROGRAMS] =
+{
+  [SAFT]   = "saft",
+  [SAFTN]  = "saftn",
+  [SAFTP]  = "saftp",
+  [SAFTX]  = "saftx",
+  [TSAFTN] = "tsaftn",
+  [TSAFTX] = "tsaftx"
+};
+
+
 static void saft_search_adjust_pvalues (SaftSearch *search);
 
 static void saft_search_sort_results   (SaftSearch *search);
@@ -249,7 +260,8 @@ saft_search_engine_new (SaftOptions *options)
 void
 saft_search_engine_free (SaftSearchEngine *engine)
 {
-  engine->free (engine);
+  if (engine->free)
+    engine->free (engine);
 }
 
 SaftSearch*
@@ -257,9 +269,11 @@ saft_search_two_sequences (SaftSearchEngine *engine,
                            SaftSequence     *query,
                            SaftSequence     *subject)
 {
-  return engine->search_two_sequences (engine,
-                                       query,
-                                       subject);
+  if (engine->search_two_sequences)
+    return engine->search_two_sequences (engine,
+                                         query,
+                                         subject);
+  return NULL;
 }
 
 SaftSearch*
@@ -267,9 +281,11 @@ saft_search_all (SaftSearchEngine *engine,
                  const char       *query_path,
                  const char       *db_path)
 {
-  return engine->search_all (engine,
-                             query_path,
-                             db_path);
+  if (engine->search_all)
+    return engine->search_all (engine,
+                               query_path,
+                               db_path);
+  return NULL;
 }
 
 /* vim:ft=c:expandtab:sw=4:ts=4:sts=4:cinoptions={.5s^-2n-2(0:

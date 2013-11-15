@@ -70,16 +70,7 @@ typedef enum
 }
 SaftProgramType;
 
-const char *saft_program_names[NB_SAFT_PROGRAMS] =
-{
-  [SAFT]   = "saft",
-  [SAFTN]  = "saftn",
-  [SAFTP]  = "saftp",
-  [SAFTX]  = "saftx",
-  [TSAFTN] = "tsaftn",
-  [TSAFTX] = "tsaftx"
-};
-
+extern const char *saft_program_names[NB_SAFT_PROGRAMS];
 
 /* TODO add an option for the type of p-value approximation.
  * Gamma is generally better, but a normal approximation might be desirable if
