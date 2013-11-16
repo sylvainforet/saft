@@ -25,6 +25,7 @@
 
 #include "safterror.h"
 #include "saftsearch.h"
+#include "saftsearchengines.h"
 #include "saftstats.h"
 
 
@@ -57,20 +58,21 @@ saft_options_new ()
 {
   SaftOptions *options;
 
-  options                      = malloc (sizeof (*options));
-  options->input_path          = NULL;
-  options->db_path             = NULL;
-  options->output_path         = NULL;
-  options->alphabet            = NULL;
-  options->letter_frequencies  = NULL;
-  options->p_max               = 5e-2;
-  options->word_size           = 0;
-  options->verbosity           = 0;
-  options->show_max            = 50;
-  options->program             = SAFT_UNKNOWN_PROGRAM;
-  options->freq_type           = SAFT_FREQ_UNIFORM;
-  options->cache_db            = 0;
-  options->cache_queries       = 0;
+  options                               = malloc (sizeof (*options));
+  options->input_path                   = NULL;
+  options->db_path                      = NULL;
+  options->output_path                  = NULL;
+  options->alphabet                     = NULL;
+  options->letter_frequencies           = NULL;
+  options->p_max                        = 5e-2;
+  options->word_size                    = 0;
+  options->verbosity                    = 0;
+  options->show_max                     = 50;
+  options->program                      = SAFT_UNKNOWN_PROGRAM;
+  options->freq_type                    = SAFT_FREQ_UNIFORM;
+  options->cache_db                     = 0;
+  options->cache_queries                = 0;
+  options->periodic_boundary_conditions = 0;
 
   return options;
 }
@@ -96,7 +98,6 @@ saft_result_new ()
   result->next         = NULL;
   result->name         = NULL;
   result->d2           = 0;
-  result->subject_size = 0;
   result->p_value      = 1;
   result->p_value_adj  = 1;
 
@@ -243,7 +244,7 @@ saft_search_engine_new (SaftOptions *options)
     {
       if (options->word_size <= 8)
         {
-          /* Array based DNA engine */
+          return saft_search_engine_dna_array_new (options);
         }
       else
         {

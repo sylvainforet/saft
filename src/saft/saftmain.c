@@ -315,7 +315,7 @@ saft_main_write_search (SaftOptions *options,
       options->show_max > search->n_results)
     options->show_max = search->n_results;
 
-  fprintf (stream, "Query: %s program: %s word size: %d\n",
+  fprintf (stream, "Query: %s program: %s word size: %ld\n",
            search->query->name,
            saft_program_names[options->program],
            options->word_size);

@@ -22,6 +22,7 @@
 #ifndef __SAFT_SEARCH_H__
 #define __SAFT_SEARCH_H__
 
+#include <stdint.h>
 
 #include "saftsequence.h"
 
@@ -72,6 +73,8 @@ SaftProgramType;
 
 extern const char *saft_program_names[NB_SAFT_PROGRAMS];
 
+typedef uint16_t WordCount;
+
 /* TODO add an option for the type of p-value approximation.
  * Gamma is generally better, but a normal approximation might be desirable if
  * the sequences are large enough and speed is important */
@@ -93,7 +96,7 @@ struct _SaftOptions
   double         *letter_frequencies;
   double          p_max;
 
-  unsigned int    word_size;
+  size_t          word_size;
 
   unsigned int    verbosity;
   int             show_max;
@@ -101,8 +104,9 @@ struct _SaftOptions
   SaftProgramType program;
   SaftFreqType    freq_type;
 
-  unsigned int    cache_db: 1;
-  unsigned int    cache_queries: 1;
+  unsigned int    cache_db                    : 1;
+  unsigned int    cache_queries               : 1;
+  unsigned int    periodic_boundary_conditions: 1;
 };
 
 SaftOptions* saft_options_new  (void);
@@ -124,7 +128,6 @@ struct _SaftResult
   double       p_value;
   double       p_value_adj;
   unsigned int d2;
-  unsigned int subject_size;
   char         frame;
 };
 
