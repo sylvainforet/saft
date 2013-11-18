@@ -147,7 +147,7 @@ main (int    argc,
                 }
               break;
           case 'b':
-              options->show_max = strtol (optarg, &endptr, 10);
+              options->max_results = strtol (optarg, &endptr, 10);
               if (errno == ERANGE || errno == EINVAL || *endptr != '\0')
                 {
                   saft_error ("Wrong `--showmax (-b)' argument: could not convert `%s' to an integer", optarg);
@@ -188,6 +188,10 @@ main (int    argc,
         options->word_size = 7;
       else
         options->word_size = 3;
+    }
+  if (options->cache_queries && options->cache_db)
+    {
+      saft_error ("Can't cache both the queries (-q) and the database (-a)");
     }
   saft_main_search (options);
 
@@ -311,24 +315,17 @@ saft_main_write_search (SaftOptions *options,
 {
   unsigned int i;
 
-  if (options->show_max <= 0 ||
-      options->show_max > search->n_results)
-    options->show_max = search->n_results;
-
   fprintf (stream, "Query: %s program: %s word size: %ld\n",
-           search->query->name,
+           search->name,
            saft_program_names[options->program],
-           options->word_size);
-  for (i = 0;
-       i < options->show_max &&
-       search->sorted_results[i]->p_value_adj <= options->p_max;
-       i++)
+           (long)options->word_size);
+  for (i = 0; i < search->n_results; i++)
     {
-      fprintf (stream, "  Hit: %s D2: %d adj.p.val: %.5e p.val: %.5e\n",
-               search->sorted_results[i]->name,
-               search->sorted_results[i]->d2,
-               search->sorted_results[i]->p_value_adj,
-               search->sorted_results[i]->p_value);
+      fprintf (stream, "  Hit: %s D2: %ld adj.p.val: %.5e p.val: %.5e\n",
+               search->results[i]->name,
+               search->results[i]->d2,
+               search->results[i]->p_value_adj,
+               search->results[i]->p_value);
     }
   if (i == 0)
     fprintf (stream, "No hit found\n");

@@ -40,12 +40,20 @@ const char *saft_program_names[NB_SAFT_PROGRAMS] =
 };
 
 
-static void saft_search_adjust_pvalues (SaftSearch *search);
+/* Priority queue functions and macros */
 
-static void saft_search_sort_results   (SaftSearch *search);
+#define results_heap_parent(i) ((i) / 2)
 
-static int  saft_result_pvalue_cmp_inc (const void *p1,
-                                        const void *p2);
+#define results_heap_left(i)   (2 * (i))
+
+#define results_heap_right(i)  (2 * (i) + 1)
+
+static void results_heap_insert      (SaftSearch *search,
+                                      SaftResult *result);
+
+static void results_heap_heapify     (SaftSearch *search);
+
+static void results_heap_sort        (SaftSearch *search);
 
 
 /******************/
@@ -67,7 +75,7 @@ saft_options_new ()
   options->p_max                        = 5e-2;
   options->word_size                    = 0;
   options->verbosity                    = 0;
-  options->show_max                     = 50;
+  options->max_results                  = 50;
   options->program                      = SAFT_UNKNOWN_PROGRAM;
   options->freq_type                    = SAFT_FREQ_UNIFORM;
   options->cache_db                     = 0;
@@ -95,7 +103,6 @@ saft_result_new ()
   SaftResult *result;
 
   result               = malloc (sizeof (*result));
-  result->next         = NULL;
   result->name         = NULL;
   result->d2           = 0;
   result->p_value      = 1;
@@ -109,7 +116,6 @@ saft_result_free (SaftResult *result)
 {
   if (result)
     {
-      saft_result_free (result->next);
       if (result->name)
         free (result->name);
       free (result);
@@ -121,15 +127,15 @@ saft_result_free (SaftResult *result)
 /**********/
 
 SaftSearch*
-saft_search_new ()
+saft_search_new (unsigned int max_results)
 {
   SaftSearch *search;
 
   search                 = malloc (sizeof (*search));
-  search->query          = NULL;
-  search->results        = NULL;
-  search->sorted_results = NULL;
+  search->results        = calloc (max_results, sizeof (*search->results));
+  search->name           = NULL;
   search->n_results      = 0;
+  search->max_results    = max_results;
 
   return search;
 }
@@ -139,99 +145,145 @@ saft_search_free (SaftSearch *search)
 {
   if (search)
     {
-      if (search->query)
-        saft_sequence_free (search->query);
+      if (search->name)
+        free (search->name);
+
       if (search->results)
-        saft_result_free (search->results);
-      if (search->sorted_results)
-        free (search->sorted_results);
+        {
+          int i;
+
+          for (i = 0; i < search->max_results; i++)
+            if (search->results[i])
+              saft_result_free (search->results[i]);
+
+          free (search->results);
+        }
+
       free (search);
     }
 }
 
 void
-saft_search_compute_pvalues (SaftSearch  *search,
-                             SaftOptions *options)
+saft_search_add_result (SaftSearch *search,
+                        SaftResult *result)
 {
-  /*
-  SaftStatsContext *context;
-  SaftResult       *result;
-  unsigned int      i;
-
-  if (options->freq_type != SAFT_FREQ_USER)
+  if (result->p_value > search->results[0]->p_value)
     {
-      unsigned int total = 0;
-
-      for (i = 0; i < search->query->alphabet->size; i++)
-        total += search->letters_counts[i];
-      for (i = 0; i < search->query->alphabet->size; i++)
-        search->letter_frequencies[i] = ((double)search->letters_counts[i]) / total;
+      saft_result_free (result);
+      return;
     }
 
-  context = saft_stats_context_new (search->word_size,
-                                    search->letter_frequencies,
-                                    search->query->alphabet->size);
-
-  for (result = search->results; result; result = result->next)
+  if (search->n_results == search->max_results)
     {
-      const double mean = saft_stats_mean (context,
-                                           search->query->size,
-                                           result->subject_size);
-      const double var  = saft_stats_var  (context,
-                                           search->query->size,
-                                           result->subject_size);
-      result->p_value   = saft_stats_pgamma_m_v (result->d2, mean, var);
+      saft_result_free (search->results[0]);
+      search->results[0] = result;
+      results_heap_heapify (search);
     }
-
-  */
-  saft_search_adjust_pvalues (search);
+  else
+    {
+      /* Insert new value */
+      results_heap_insert (search, result);
+    }
 }
 
-static void
+void
 saft_search_adjust_pvalues (SaftSearch *search)
 {
   int i;
 
-  saft_search_sort_results (search);
+  results_heap_sort (search);
 
-  search->sorted_results[search->n_results - 1]->p_value_adj = search->sorted_results[search->n_results - 1]->p_value;
+  /* FIXME Make sure the direction of the sorting is correct */
+  /* FIXME Have a conservative adjustment of the first p-value */
+  search->results[search->n_results - 1]->p_value_adj = search->results[search->n_results - 1]->p_value;
   for (i = search->n_results - 2; i >= 0; i--)
-    search->sorted_results[i]->p_value_adj = saft_stats_BH_element (search->sorted_results[i]->p_value,
-                                                                    search->sorted_results[i + 1]->p_value_adj,
+    search->results[i]->p_value_adj = saft_stats_BH_element (search->results[i]->p_value,
+                                                                    search->results[i + 1]->p_value_adj,
                                                                     i,
                                                                     search->n_results);
 }
 
+/* TODO Try alternative data structure for the results, maybe a Fibonacci heap */
+
+/* FIXME Fix up the indices to have a consistent zero-based indexing system.
+ * Importantly, make sure that this does not break the parent/left/right macros
+ * */
+
 static void
-saft_search_sort_results (SaftSearch *search)
+results_heap_insert (SaftSearch *search,
+                     SaftResult *result)
 {
-  SaftResult  *result;
-  SaftResult **tmp;
+  int i;
+  int p;
 
-  search->sorted_results = malloc (search->n_results * sizeof (*search->sorted_results));
-  tmp                    = search->sorted_results - 1;
+  search->results[search->n_results] = result;
+  search->n_results++;
 
-  for (result = search->results; result; result = result->next)
-    *++tmp = result;
+  /* Heap-Increase-Key */
+  i = search->n_results;
+  p = results_heap_parent (i);
+  while (i > 1 && search->results[p - 1]->p_value < search->results[i - 1]->p_value)
+    {
+      SaftResult *tmp;
 
-  qsort (search->sorted_results,
-         search->n_results,
-         sizeof (*search->sorted_results),
-         saft_result_pvalue_cmp_inc);
+      tmp                    = search->results[i - 1];
+      search->results[i - 1] = search->results[p - 1];
+      search->results[p - 1] = tmp;
+      i                      = p;
+    }
 }
 
-static int
-saft_result_pvalue_cmp_inc (const void *p1,
-                            const void *p2)
+static void
+results_heap_heapify (SaftSearch *search)
 {
-  const SaftResult **res1 = (const SaftResult**)p1;
-  const SaftResult **res2 = (const SaftResult**)p2;
+  int i;
 
-  if ((*res1)->p_value > (*res2)->p_value)
-    return 1;
-  return -1;
+  i = 1;
+  while (1)
+    {
+      const int l   = results_heap_left (i);
+      const int r   = results_heap_right (i);
+      int       max = 0;
+
+      if (l <= search->n_results && search->results[l - 1]->p_value > search->results[i - 1]->p_value)
+        max = l;
+      else
+        max = i;
+      if (r <= search->n_results && search->results[r - 1]->p_value > search->results[max - 1]->p_value)
+        max = r;
+
+      if (max == i)
+        break;
+      else
+        {
+          SaftResult *tmp;
+
+          tmp                      = search->results[i - 1];
+          search->results[i - 1]   = search->results[max - 1];
+          search->results[max - 1] = tmp;
+          i                        = max;
+        }
+    }
 }
 
+static void
+results_heap_sort (SaftSearch *search)
+{
+  const int n = search->n_results;
+  int       i;
+
+  for (i = n; i >= 2; i--)
+    {
+      SaftResult *tmp;
+
+      tmp                    = search->results[i - 1];
+      search->results[i - 1] = search->results[0];
+      search->results[0]     = tmp;
+      search->n_results--;
+      results_heap_heapify (search);
+    }
+  search->n_results = n;
+}
 
 /********************/
 /* SaftSearchEngine */

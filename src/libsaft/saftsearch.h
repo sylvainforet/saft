@@ -99,13 +99,17 @@ struct _SaftOptions
   size_t          word_size;
 
   unsigned int    verbosity;
-  int             show_max;
+  int             max_results;
 
   SaftProgramType program;
   SaftFreqType    freq_type;
 
+  /* FIXME implement this */
+  char            strand;
+
   unsigned int    cache_db                    : 1;
   unsigned int    cache_queries               : 1;
+  /* FIXME implement this */
   unsigned int    periodic_boundary_conditions: 1;
 };
 
@@ -123,12 +127,11 @@ typedef struct _SaftResult SaftResult;
 
 struct _SaftResult
 {
-  SaftResult  *next;
-  char        *name;
-  double       p_value;
-  double       p_value_adj;
-  unsigned int d2;
-  char         frame;
+  char         *name;
+  double        p_value;
+  double        p_value_adj;
+  unsigned long d2;
+  char          frame;
 };
 
 SaftResult* saft_result_new  (void);
@@ -146,18 +149,20 @@ typedef struct _SaftSearch SaftSearch;
 struct _SaftSearch
 {
   SaftSearch    *next;
-  SaftSequence  *query;
-  SaftResult    *results;
-  SaftResult   **sorted_results;
+  SaftResult   **results;
+  char          *name;
   unsigned int   n_results;
+  unsigned int   max_results;
 };
 
-SaftSearch* saft_search_new             (void);
+SaftSearch* saft_search_new             (unsigned int  max_results);
 
 void        saft_search_free            (SaftSearch   *search);
 
-void        saft_search_compute_pvalues (SaftSearch   *search,
-                                         SaftOptions  *options);
+void        saft_search_add_result      (SaftSearch   *search,
+                                         SaftResult   *result);
+
+void        saft_search_adjust_pvalues  (SaftSearch   *search);
 
 /********************/
 /* SaftSearchEngine */

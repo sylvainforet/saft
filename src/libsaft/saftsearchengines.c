@@ -20,9 +20,11 @@
  */
 
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "saftfasta.h"
 #include "saftsearchengines.h"
 #include "saftstats.h"
 
@@ -121,6 +123,23 @@ search_engine_generic_search_all (SaftSearchEngine *engine,
 /* Array-based DNA Search Engine */
 /*********************************/
 
+typedef struct _DNAArrayDBEntry DNAArrayDBEntry;
+
+struct _DNAArrayDBEntry
+{
+  DNAArrayDBEntry *next;
+  WordCount       *counts;
+  char            *name;
+  size_t           length;
+};
+
+static DNAArrayDBEntry* dna_array_db_entry_new      (void);
+
+static void             dna_array_db_entry_free     (DNAArrayDBEntry *entry);
+
+static void             dna_array_db_entry_free_all (DNAArrayDBEntry *entry);
+
+
 typedef struct _SearchEngineDNAArray SearchEngineDNAArray;
 
 struct _SearchEngineDNAArray
@@ -129,12 +148,24 @@ struct _SearchEngineDNAArray
 
   SaftStatsContext *stats_context;
 
-  WordCount       **query_cache;
-  WordCount       **db_cache;
+  DNAArrayDBEntry  *query_cache;
+  DNAArrayDBEntry  *db_cache;
+
+  SaftSearch       *search;
+  SaftSearch      **search_array;
+  SaftSearch       *tmp_search;
+  WordCount        *tmp_counts;
+
+  size_t            n_queries;
+  size_t            max_words;
+  size_t            tmp_length;
 };
 
 
 static void        search_engine_dna_array_free                 (SaftSearchEngine     *engine);
+
+static WordCount*  search_engine_dna_array_hash_sequence        (SearchEngineDNAArray *engine,
+                                                                 SaftSequence         *sequence);
 
 static SaftSearch* search_engine_dna_array_search_two_sequences (SaftSearchEngine     *engine,
                                                                  SaftSequence         *query,
@@ -144,8 +175,34 @@ static SaftSearch* search_engine_dna_array_search_all           (SaftSearchEngin
                                                                  const char           *query_path,
                                                                  const char           *db_path);
 
-static WordCount*  search_engine_dna_array_hash_sequence        (SearchEngineDNAArray *engine,
-                                                                 SaftSequence         *sequence);
+static SaftSearch* search_engine_dna_array_search_all_no_cache  (SearchEngineDNAArray *engine,
+                                                                 const char           *query_path,
+                                                                 const char           *db_path);
+
+static SaftSearch* search_engine_dna_array_search_all_qcached   (SearchEngineDNAArray *engine,
+                                                                 const char           *query_path,
+                                                                 const char           *db_path);
+
+static SaftSearch* search_engine_dna_array_search_all_dcached   (SearchEngineDNAArray *engine,
+                                                                 const char           *query_path,
+                                                                 const char           *db_path);
+
+static int         search_engine_dna_array_cache_sequence       (SaftSequence         *sequence,
+                                                                 void                 *data);
+
+static int         search_engine_dna_array_search_query         (SaftSequence         *sequence,
+                                                                 void                 *data);
+
+static int         search_engine_dna_array_search_db            (SaftSequence         *sequence,
+                                                                 void                 *data);
+
+static int         search_engine_dna_array_queries_iter_func    (SaftSequence         *sequence,
+                                                                 void                 *data);
+
+static int         search_engine_dna_array_db_iter_func         (SaftSequence         *sequence,
+                                                                 void                 *data);
+
+
 
 SaftSearchEngine*
 saft_search_engine_dna_array_new (SaftOptions *options)
@@ -162,6 +219,12 @@ saft_search_engine_dna_array_new (SaftOptions *options)
                                                                        options->letter_frequencies, 4);
   engine->query_cache                        = NULL;
   engine->db_cache                           = NULL;
+  engine->search                             = NULL;
+  engine->search_array                       = NULL;
+  engine->tmp_counts                         = NULL;
+  engine->n_queries                          = 0;
+  engine->max_words                          = 1 << (2 * options->word_size);
+  engine->tmp_length                         = 0;
 
   return (SaftSearchEngine*)engine;
 }
@@ -173,70 +236,18 @@ search_engine_dna_array_free (SaftSearchEngine *engine)
 
   se = (SearchEngineDNAArray*) engine;
 
-  saft_stats_context_free (se->stats_context);
+  if (se->stats_context)
+    saft_stats_context_free (se->stats_context);
   if (se->query_cache)
-    free (se->query_cache);
+    dna_array_db_entry_free_all (se->query_cache);
   if (se->db_cache)
-    free (se->db_cache);
-}
+    dna_array_db_entry_free_all (se->db_cache);
+  if (se->search)
+    saft_search_free (se->search);
+  if (se->search_array)
+    free (se->search_array);
 
-static SaftSearch*
-search_engine_dna_array_search_two_sequences (SaftSearchEngine *engine,
-                                              SaftSequence     *query,
-                                              SaftSequence     *subject)
-{
-  SearchEngineDNAArray *se;
-  SaftSearch           *search;
-  SaftResult           *res;
-  WordCount            *counts_query;
-  WordCount            *counts_subject;
-  double                mean;
-  double                var;
-  int                   i;
-
-  se = (SearchEngineDNAArray*) engine;
-
-  counts_query   = search_engine_dna_array_hash_sequence (se, query);
-  counts_subject = search_engine_dna_array_hash_sequence (se, subject);
-
-  res = saft_result_new ();
-  for (i = (1 << (2 * engine->options->word_size)) - 1; i >= 0; i--)
-    res->d2 += counts_query[i] * counts_subject[i];
-
-  mean = saft_stats_mean (se->stats_context,
-                          query->seq_length,
-                          subject->seq_length);
-  var  = saft_stats_mean (se->stats_context,
-                          query->seq_length,
-                          subject->seq_length);
-
-  res->name         = subject->name;
-  res->p_value      = saft_stats_pgamma_m_v (res->d2, mean, var);
-  res->p_value_adj  = res->p_value;
-
-  search                 = saft_search_new ();
-  search->query          = query;
-  search->results        = res;
-  search->sorted_results = &search->results;
-  search->n_results      = 1;
-
-  free (counts_query);
-  free (counts_subject);
-
-  return search;
-}
-
-static SaftSearch*
-search_engine_dna_array_search_all (SaftSearchEngine *engine,
-                                    const char       *query_path,
-                                    const char       *db_path)
-{
-  SearchEngineDNAArray *se;
-
-  se = (SearchEngineDNAArray*) engine;
-  se++;
-
-  return NULL;
+  free (se);
 }
 
 static WordCount*
@@ -249,7 +260,7 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
   size_t         i;
   uint16_t       w = 0;
 
-  counts = calloc ((1 << (2 * k)), sizeof (*counts));
+  counts = calloc (engine->max_words, sizeof (*counts));
   if (sequence->seq_length < k)
     return counts;
 
@@ -274,6 +285,390 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
       ++counts[w];
     }
   return counts;
+}
+
+static SaftSearch*
+search_engine_dna_array_search_two_sequences (SaftSearchEngine *engine,
+                                              SaftSequence     *query,
+                                              SaftSequence     *subject)
+{
+  SearchEngineDNAArray *se;
+  SaftSearch           *search;
+  SaftResult           *result;
+  WordCount            *counts_query;
+  WordCount            *counts_subject;
+  double                mean;
+  double                var;
+  int                   i;
+
+  se = (SearchEngineDNAArray*) engine;
+
+  counts_query   = search_engine_dna_array_hash_sequence (se, query);
+  counts_subject = search_engine_dna_array_hash_sequence (se, subject);
+
+  result = saft_result_new ();
+  for (i = se->max_words - 1; i >= 0; i--)
+    result->d2 += counts_query[i] * counts_subject[i];
+
+  mean = saft_stats_mean (se->stats_context,
+                          query->seq_length,
+                          subject->seq_length);
+  var  = saft_stats_mean (se->stats_context,
+                          query->seq_length,
+                          subject->seq_length);
+
+  result->name         = strdup(subject->name);
+  result->p_value      = saft_stats_pgamma_m_v (result->d2, mean, var);
+  result->p_value_adj  = result->p_value;
+
+  search                 = saft_search_new (1);
+  search->name           = strdup(query->name);
+  saft_search_add_result (search, result);
+
+  free (counts_query);
+  free (counts_subject);
+
+  return search;
+}
+
+static SaftSearch*
+search_engine_dna_array_search_all (SaftSearchEngine *engine,
+                                    const char       *query_path,
+                                    const char       *db_path)
+{
+  SearchEngineDNAArray *se;
+  SaftSearch           *ret = NULL;
+
+
+  se = (SearchEngineDNAArray*) engine;
+
+  if (engine->options->cache_db)
+    ret = search_engine_dna_array_search_all_dcached (se, query_path, db_path);
+  else if (engine->options->cache_queries)
+    ret = search_engine_dna_array_search_all_qcached (se, query_path, db_path);
+  else
+    ret = search_engine_dna_array_search_all_no_cache (se, query_path, db_path);
+
+  return ret;
+}
+
+static SaftSearch*
+search_engine_dna_array_search_all_no_cache (SearchEngineDNAArray *engine,
+                                             const char           *query_path,
+                                             const char           *db_path)
+{
+  SaftSearch *ret;
+
+  saft_fasta_iter (query_path,
+                   search_engine_dna_array_queries_iter_func,
+                   engine);
+
+  ret = engine->search;
+  engine->search = NULL;
+
+  return ret;
+}
+
+static int
+search_engine_dna_array_queries_iter_func (SaftSequence *sequence,
+                                           void         *data)
+{
+  SearchEngineDNAArray *engine;
+
+  engine = (SearchEngineDNAArray*)data;
+
+  engine->tmp_counts       = search_engine_dna_array_hash_sequence (engine, sequence);
+  engine->tmp_length       = sequence->seq_length;
+  engine->tmp_search       = saft_search_new (engine->search_engine.options->max_results);
+  engine->tmp_search->name = strdup (sequence->name);
+
+  saft_fasta_iter (engine->search_engine.options->db_path,
+                   search_engine_dna_array_db_iter_func,
+                   engine);
+
+  free (engine->tmp_counts);
+  engine->tmp_counts = NULL;
+
+  if (engine->tmp_search->n_results == 0)
+    saft_search_free (engine->tmp_search);
+  else
+    {
+      engine->tmp_search->next = engine->search;
+      engine->search           = engine->tmp_search;
+      engine->tmp_search       = NULL;
+    }
+
+  return 1;
+}
+
+static int
+search_engine_dna_array_db_iter_func (SaftSequence *sequence,
+                                      void         *data)
+{
+  SearchEngineDNAArray *engine;
+  WordCount            *counts;
+  unsigned long         d2 = 0;
+  double                mean;
+  double                var;
+  int                   i;
+
+  engine = (SearchEngineDNAArray*)data;
+  counts = search_engine_dna_array_hash_sequence (engine, sequence);
+
+  for (i = 0; i < engine->max_words; i++)
+    d2 += engine->tmp_counts[i] * counts[i];
+
+  free (counts);
+
+  mean = saft_stats_mean (engine->stats_context,
+                          sequence->seq_length,
+                          engine->tmp_length);
+  var  = saft_stats_mean (engine->stats_context,
+                          sequence->seq_length,
+                          engine->tmp_length);
+
+  /* FIXME adjust this euristic depending on the user's required significance level */
+  /* Fix this here and everywhere else in this file */
+  if (d2 >= mean + 2 * sqrt (var))
+    {
+      SaftResult    *result;
+
+      result          = saft_result_new ();
+      result->d2      = d2;
+      result->p_value = saft_stats_pgamma_m_v (result->d2, mean, var);
+      result->name    = strdup(sequence->name);
+      saft_search_add_result (engine->tmp_search, result);
+    }
+
+  return 1;
+}
+
+static int
+search_engine_dna_array_cache_sequence (SaftSequence *sequence,
+                                        void         *data)
+{
+  SearchEngineDNAArray *engine;
+  DNAArrayDBEntry      *entry;
+
+  engine        = (SearchEngineDNAArray*)data;
+  entry         = dna_array_db_entry_new ();
+  entry->counts = search_engine_dna_array_hash_sequence (engine, sequence);
+  entry->name   = strdup (sequence->name);
+  entry->length = sequence->seq_length;
+
+  if (engine->search_engine.options->cache_db)
+    {
+      entry->next      = engine->db_cache;
+      engine->db_cache = entry;
+    }
+  else
+    {
+      entry->next         = engine->query_cache;
+      engine->query_cache = entry;
+      engine->n_queries++;
+    }
+
+  return 1;
+}
+
+static SaftSearch*
+search_engine_dna_array_search_all_dcached (SearchEngineDNAArray *engine,
+                                            const char           *query_path,
+                                            const char           *db_path)
+{
+  saft_fasta_iter (db_path,
+                   search_engine_dna_array_cache_sequence,
+                   engine);
+  saft_fasta_iter (query_path,
+                   search_engine_dna_array_search_query,
+                   engine);
+
+  return engine->search;
+}
+
+static int
+search_engine_dna_array_search_query (SaftSequence *sequence,
+                                      void         *data)
+{
+  SearchEngineDNAArray *engine;
+  SaftSearch           *search;
+  DNAArrayDBEntry      *entry;
+  WordCount            *counts;
+
+  engine       = (SearchEngineDNAArray*)data;
+  counts       = search_engine_dna_array_hash_sequence (engine, sequence);
+  search       = saft_search_new (engine->search_engine.options->max_results);
+  search->name = strdup (sequence->name);
+
+  for (entry = engine->db_cache; entry; entry = entry->next)
+    {
+      unsigned long d2 = 0;
+      double        mean;
+      double        var;
+      int           i;
+
+      for (i = 0; i < engine->max_words; i++)
+        d2 += entry->counts[i] * counts[i];
+
+      mean = saft_stats_mean (engine->stats_context,
+                              sequence->seq_length,
+                              entry->length);
+      var  = saft_stats_mean (engine->stats_context,
+                              sequence->seq_length,
+                              entry->length);
+
+      /* FIXME adjust this euristic depending on the user's required significance level */
+      if (d2 < mean + 2 * sqrt (var))
+          continue;
+      else
+        {
+          SaftResult    *result;
+
+          result          = saft_result_new ();
+          result->d2      = d2;
+          result->p_value = saft_stats_pgamma_m_v (result->d2, mean, var);
+          result->name    = strdup (entry->name);
+          saft_search_add_result (search, result);
+        }
+    }
+
+  if (search->n_results > 0)
+    {
+      search->next = engine->search;
+      engine->search = search;
+    }
+  else
+    saft_search_free (search);
+
+  return 1;
+}
+
+static SaftSearch*
+search_engine_dna_array_search_all_qcached (SearchEngineDNAArray *engine,
+                                            const char           *query_path,
+                                            const char           *db_path)
+{
+  size_t i;
+
+  saft_fasta_iter (query_path,
+                   search_engine_dna_array_cache_sequence,
+                   engine);
+  engine->search_array = calloc (engine->n_queries, sizeof (*engine->search_array));
+  saft_fasta_iter (db_path,
+                   search_engine_dna_array_search_db,
+                   engine);
+
+  for (i = 0; i < engine->n_queries; i++)
+    {
+      SaftSearch *search;
+
+      search = engine->search_array[i];
+      if (!search || search->n_results == 0)
+        continue;
+      search->next   = engine->search;
+      engine->search = search;
+    }
+  free (engine->search_array);
+  engine->search_array = NULL;
+
+  return engine->search;
+}
+
+static int
+search_engine_dna_array_search_db (SaftSequence *sequence,
+                                   void         *data)
+{
+  SearchEngineDNAArray *engine;
+  DNAArrayDBEntry      *entry;
+  WordCount            *counts;
+  size_t                query_idx = 0;
+
+  engine = (SearchEngineDNAArray*)data;
+  counts = search_engine_dna_array_hash_sequence (engine, sequence);
+
+  for (entry = engine->query_cache; entry; entry = entry->next)
+    {
+      unsigned long d2 = 0;
+      double        mean;
+      double        var;
+      int           i;
+
+      for (i = 0; i < engine->max_words; i++)
+        d2 += entry->counts[i] * counts[i];
+
+      mean = saft_stats_mean (engine->stats_context,
+                              sequence->seq_length,
+                              entry->length);
+      var  = saft_stats_mean (engine->stats_context,
+                              sequence->seq_length,
+                              entry->length);
+
+      if (d2 < mean + 2 * sqrt (var))
+        {
+          query_idx++;
+          continue;
+        }
+      else
+        {
+          SaftSearch *search;
+          SaftResult *result;
+
+          if (!engine->search_array[query_idx])
+            {
+              search       = saft_search_new (engine->search_engine.options->max_results);
+              /* TODO could use the same string as in the entry and deallocate carefully */
+              search->name = strdup (entry->name);
+              engine->search_array[query_idx] = search;
+            }
+          search = engine->search_array[query_idx];
+
+          result          = saft_result_new ();
+          result->d2      = d2;
+          result->p_value = saft_stats_pgamma_m_v (result->d2, mean, var);
+          result->name    = strdup (sequence->name);
+          saft_search_add_result (search, result);
+        }
+      query_idx++;
+    }
+
+  return 1;
+}
+
+static DNAArrayDBEntry*
+dna_array_db_entry_new ()
+{
+  DNAArrayDBEntry *entry;
+
+  entry         = malloc (sizeof (*entry));
+  entry->next   = NULL;
+  entry->counts = NULL;
+  entry->name   = NULL;
+  entry->length = 0;
+
+  return entry;
+}
+
+static void
+dna_array_db_entry_free (DNAArrayDBEntry *entry)
+{
+  if (entry->counts)
+    free (entry->counts);
+  if (entry->name)
+    free (entry->name);
+  free (entry);
+}
+
+static void
+dna_array_db_entry_free_all (DNAArrayDBEntry *entry)
+{
+  while (entry)
+    {
+      DNAArrayDBEntry *next;
+
+      next  = entry->next;
+      dna_array_db_entry_free (entry);
+      entry = next;
+    }
 }
 
 /********************************/
