@@ -45,46 +45,49 @@ struct _SaftOptDesc
 static SaftOptDesc opt_desc[] =
 {
     /* Program information */
-    {"help",     no_argument,       'h', "Prints a short help"},
-    {"version",  no_argument,       'V', "Prints the program's version"},
+    {"help",        no_argument,       'h', "Prints a short help"},
+    {"version",     no_argument,       'V', "Prints the program's version"},
     /* General options */
-    {"verbose",  no_argument,       'v', "Increases the program's verbosity"},
+    {"verbose",     no_argument,       'v', "Increases the program's verbosity"},
     /* TODO multi threading options ? */
     /* Input / Output */
-    {"input",    required_argument, 'i', "Path to the input file"},
-    {"database", required_argument, 'd', "Path to the database to search"},
-    {"output",   required_argument, 'o', "Path to the output file"},
+    {"input",       required_argument, 'i', "Path to the input file"},
+    {"database",    required_argument, 'd', "Path to the database to search"},
+    {"output",      required_argument, 'o', "Path to the output file"},
     /* Search setup */
-    {"program",  required_argument, 'p', "Program to use"},
-    {"wordsize", required_argument, 'w', "Word size"},
-    {"showmax",  required_argument, 'b', "Maximum number of results to show"},
-    {"pmax",     required_argument, 'e', "Show results with a p-value smaller than this"},
-    /* FIXME add option for the frequencies */
+    {"program",     required_argument, 'p', "Program to use"},
+    {"wordsize",    required_argument, 'w', "Word size"},
+    {"showmax",     required_argument, 'b', "Maximum number of results to show"},
+    {"pmax",        required_argument, 'e', "Show results with a p-value smaller than this"},
+    {"letter_freq", required_argument, 'f', "Comma separated list of letter frequencies"},
     /* FIXME add option to choose the strand(s) of the query */
 
     /* TODO We could have an extra mechanism to add engine specific options */
     /* The two options below could be implemented with that mechanism */
     /* This would be analogous to the -o option of 'mount' */
-    {"cacheq",   no_argument,       'q', "Cache the queries in memory (only used by some engines)"},
-    {"cached",   no_argument,       'a', "Cache the database in memory (only used by some engines)"},
+    {"cacheq",      no_argument,       'q', "Cache the queries in memory (only used by some engines)"},
+    {"cached",      no_argument,       'a', "Cache the database in memory (only used by some engines)"},
+
     {NULL, 0, 0, NULL}
 };
 
-static struct option*   saft_main_get_options  (void);
+static struct option*   saft_main_get_options   (void);
 
-static void             saft_main_usage        (char        *argv0);
+static char*            saft_main_get_optstring (void);
 
-static void             saft_main_help         (char        *argv0);
+static void             saft_main_usage         (char        *argv0);
 
-static void             saft_main_version      (void);
+static void             saft_main_help          (char        *argv0);
 
-static SaftProgramType  saft_main_program_type (char        *program);
+static void             saft_main_version       (void);
 
-static int              saft_main_search       (SaftOptions *options);
+static SaftProgramType  saft_main_program_type  (char        *program);
 
-static void             saft_main_write_search (SaftOptions *options,
-                                                SaftSearch  *search,
-                                                FILE        *stream);
+static int              saft_main_search        (SaftOptions *options);
+
+static void             saft_main_write_search  (SaftOptions *options,
+                                                 SaftSearch  *search,
+                                                 FILE        *stream);
 
 int
 main (int    argc,
@@ -93,8 +96,11 @@ main (int    argc,
   struct option  *long_options = saft_main_get_options ();
   SaftOptions    *options      = saft_options_new ();
   int             ret          = 0;
+  char           *tmp_freqs    = NULL;
+  char           *optstring;
   char           *endptr;
 
+  optstring = saft_main_get_optstring ();
   while (1)
     {
       int option_index = 0;
@@ -102,7 +108,7 @@ main (int    argc,
 
       c = getopt_long (argc,
                        argv,
-                       "hV" "v" "i:d:o:" "p:w:b:e:",
+                       optstring,
                        long_options,
                        &option_index);
       if (c == -1)
@@ -120,13 +126,13 @@ main (int    argc,
               options->verbosity++;
               break;
           case 'i':
-              options->input_path = optarg;
+              options->input_path = strdup (optarg);
               break;
           case 'd':
-              options->db_path = optarg;
+              options->db_path = strdup (optarg);
               break;
           case 'o':
-              options->output_path = optarg;
+              options->output_path = strdup (optarg);
               break;
           case 'p':
               options->program = saft_main_program_type (optarg);
@@ -164,6 +170,9 @@ main (int    argc,
                   goto cleanup;
                 }
               break;
+          case 'f':
+              tmp_freqs = optarg;
+              break;
           case 'q':
               options->cache_queries = 1;
               break;
@@ -182,6 +191,39 @@ main (int    argc,
       ret = 1;
       goto cleanup;
     }
+  else
+    {
+      switch (options->program)
+        {
+          case SAFTN:
+              options->alphabet = &SaftAlphabetDNA;
+              break;
+          case SAFTP:
+          case SAFTX:
+          case TSAFTN:
+          case TSAFTX:
+              options->alphabet = &SaftAlphabetProtein;
+              break;
+          case SAFT:
+              saft_error ("Generic SAFT program not implemented");
+              break;
+          default:
+              saft_error ("Unknown SAFT program");
+              break;
+        }
+    }
+  if (!options->input_path)
+    {
+      saft_error ("Query file was not provided, use the `--input' or `-i' option'");
+      ret = 1;
+      goto cleanup;
+    }
+  if (!options->db_path)
+    {
+      saft_error ("Database file was not provided, use the `--database' or `-d' option'");
+      ret = 1;
+      goto cleanup;
+    }
   if (options->word_size == 0)
     {
       if (options->program == SAFTN)
@@ -193,9 +235,57 @@ main (int    argc,
     {
       saft_error ("Can't cache both the queries (-q) and the database (-a)");
     }
+
+  options->letter_frequencies = malloc (options->alphabet->size * sizeof (*options->letter_frequencies));
+  if (tmp_freqs)
+    {
+      const double epsilon = 1e-6;
+      double       tot = 0.0;
+      char        *saveptr;
+      int          i;
+
+      for (i = 0; i < options->alphabet->size; i++)
+        {
+          char *token;
+
+          token = strtok_r (tmp_freqs, ",", &saveptr);
+          if (!token)
+            {
+              saft_error ("Failed to parse frequencies: `%s'", tmp_freqs);
+              ret = 1;
+              goto cleanup;
+            }
+
+          options->letter_frequencies[i] = strtod (token, &endptr);
+          if (errno == ERANGE || *endptr != '\0')
+            {
+              saft_error ("Failed to convert frequency `%s' to double", token);
+              ret = 1;
+              goto cleanup;
+            }
+          tot += options->letter_frequencies[i];
+        }
+
+      if (tot + epsilon < 1.0 || tot - epsilon > 1.0)
+        {
+          saft_error ("Frequencies did not sum to 1.0: `%s'", tmp_freqs);
+          ret = 1;
+          goto cleanup;
+        }
+    }
+  else
+    {
+      const double f = 1. / options->alphabet->size;
+      int          i;
+
+      for (i = 0; i < options->alphabet->size; i++)
+        options->letter_frequencies[i] = f;
+    }
+
   saft_main_search (options);
 
 cleanup:
+  free (optstring);
   free (long_options);
   saft_options_free (options);
 
@@ -226,6 +316,33 @@ saft_main_get_options ()
   long_options[i].val     = 0;
 
   return long_options;
+}
+
+static char*
+saft_main_get_optstring ()
+{
+  char *optstring;
+  int   nb_options;
+  int   i;
+  int   j;
+
+  for (nb_options = 0; opt_desc[nb_options].name; nb_options++);
+
+  optstring = malloc (2 * nb_options + 1);
+
+  for (i = 0, j = 0; i < nb_options; i++)
+    {
+      optstring[j] = (char)opt_desc[i].val;
+      j++;
+      if (opt_desc[i].has_arg == required_argument)
+        {
+          optstring[j] = ':';
+          j++;
+        }
+    }
+  optstring[j] = '\0';
+
+  return optstring;
 }
 
 static void
@@ -293,16 +410,25 @@ saft_main_search (SaftOptions *options)
       saft_error ("Could not open output file");
       return 1;
     }
-  engine   = saft_search_engine_new (options);
+
+  engine = saft_search_engine_new (options);
+  if (!engine)
+    {
+      saft_error ("Could not create search engine");
+      return 1;
+    }
+
   searches = saft_search_all (engine, options->input_path, options->db_path);
-  /* Could write directly from the engine ... */
-  for (search = searches; search != NULL; search = search->next)
+  saft_search_engine_free (engine);
+
+  for (search = searches; search; search = search->next)
     {
       saft_main_write_search (options,
                               search,
                               out_stream);
-      saft_search_free (search);
     }
+  saft_search_free_all (search);
+
   if (options->output_path == NULL)
     fclose (out_stream);
   return 0;
@@ -313,12 +439,14 @@ saft_main_write_search (SaftOptions *options,
                         SaftSearch  *search,
                         FILE        *stream)
 {
-  unsigned int i;
+  int i;
 
   fprintf (stream, "Query: %s program: %s word size: %ld\n",
            search->name,
            saft_program_names[options->program],
            (long)options->word_size);
+
+  saft_search_adjust_pvalues (search);
   for (i = 0; i < search->n_results; i++)
     {
       fprintf (stream, "  Hit: %s D2: %ld adj.p.val: %.5e p.val: %.5e\n",

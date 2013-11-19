@@ -89,7 +89,18 @@ void
 saft_options_free (SaftOptions *options)
 {
   if (options)
-    free (options);
+    {
+      if (options->input_path)
+        free (options->input_path);
+      if (options->db_path)
+        free (options->db_path);
+      if (options->output_path)
+        free (options->output_path);
+      if (options->letter_frequencies)
+        free (options->letter_frequencies);
+
+      free (options);
+    }
 }
 
 
@@ -118,6 +129,7 @@ saft_result_free (SaftResult *result)
     {
       if (result->name)
         free (result->name);
+
       free (result);
     }
 }
@@ -164,10 +176,43 @@ saft_search_free (SaftSearch *search)
 }
 
 void
+saft_search_free_all (SaftSearch *search)
+{
+  while (search)
+    {
+      SaftSearch *next;
+
+      next = search->next;
+      saft_search_free (search);
+      search = next;
+    }
+}
+
+SaftSearch*
+saft_search_reverse (SaftSearch *search)
+{
+  SaftSearch *prev = NULL;
+
+  while (search)
+    {
+      SaftSearch *next;
+
+      next         = search->next;
+      search->next = prev;
+      prev         = search;
+      search       = next;
+    }
+
+  return prev;
+}
+
+void
 saft_search_add_result (SaftSearch *search,
                         SaftResult *result)
 {
-  if (result->p_value > search->results[0]->p_value)
+  /* TODO Deal with ties */
+
+  if (search->n_results > 0 && result->p_value > search->results[0]->p_value)
     {
       saft_result_free (result);
       return;
@@ -176,20 +221,22 @@ saft_search_add_result (SaftSearch *search,
   if (search->n_results == search->max_results)
     {
       saft_result_free (search->results[0]);
-      search->results[0] = result;
+      search->results[0] = search->results[search->n_results - 1];
+      search->results[search->n_results - 1] = NULL;  /* TODO do we really need to do this ? */
+      search->n_results--;
       results_heap_heapify (search);
     }
-  else
-    {
-      /* Insert new value */
-      results_heap_insert (search, result);
-    }
+  /* Insert new value */
+  results_heap_insert (search, result);
 }
 
 void
 saft_search_adjust_pvalues (SaftSearch *search)
 {
   int i;
+
+  if (search->n_results == 0)
+    return;
 
   results_heap_sort (search);
 
@@ -301,11 +348,13 @@ saft_search_engine_new (SaftOptions *options)
       else
         {
           /* Hash-Table based DNA engine */
+          saft_error ("Word sizes > 8 not implemented yet");
         }
     }
   else
     {
       /* Generic engine */
+      saft_error ("Only DNA alphabet is implemented");
     }
   return NULL;
 }

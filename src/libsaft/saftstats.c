@@ -34,12 +34,15 @@ static double saft_stats_sum_freq_pow (double      *f,
 
 /* FIXME There's quite a bit of optimisation and checking for numeric stability
  * that could be done here */
+/* FIXME One place to start would be to avoid recalculating some of the p(y, z)
+ * several times */
+
 SaftStatsContext*
 saft_stats_context_new (unsigned int word_size,
-                        double      *letters_frequencies,
+                        double      *letter_frequencies,
                         unsigned int n_letters)
 {
-#define p(freq_pow, sum_pow) saft_stats_sum_freq_pow(letters_frequencies, n_letters, freq_pow, sum_pow)
+#define p(freq_pow, sum_pow) saft_stats_sum_freq_pow (letter_frequencies, n_letters, freq_pow, sum_pow)
 
   SaftStatsContext *context;
   int               k = word_size;
@@ -48,7 +51,7 @@ saft_stats_context_new (unsigned int word_size,
 
   context           = malloc (sizeof (*context));
   context->word_size = word_size;
-  context->p_2_k     = p(2, k);
+  context->p_2_k     = p (2, k);
   context->cov_crab  = 0;
   context->cov_diag  = 0;
   context->cov_ac1   = 0;
@@ -56,7 +59,7 @@ saft_stats_context_new (unsigned int word_size,
   context->unif      = 1;
 
   for (i = 1; i < n_letters; i++)
-    if (letters_frequencies[i] != letters_frequencies[0])
+    if (letter_frequencies[i] != letter_frequencies[0])
       {
         context->unif = 0;
         break;
@@ -65,17 +68,17 @@ saft_stats_context_new (unsigned int word_size,
   context->sum_var_Yu = p (2, k) - p (2, 2 * k);
 
   if (!context->unif)
-    context->cov_crab = (p(3, k) +
-                         2 * p(2, 2) * p(3, 1) *
-                         ((p(3, k - 1) - p(2, 2 * (k - 1))) / (p(3, 1) - p(2, 2))) -
-                         (2 * k - 1) * p(2, 2 * k));
+    context->cov_crab = (p (3, k) +
+                         2 * p (2, 2) * p (3, 1) *
+                         ((p (3, k - 1) - p (2, 2 * (k - 1))) / (p (3, 1) - p (2, 2))) -
+                         (2 * k - 1) * p (2, 2 * k));
 
   if (context->word_size == 1)
     return context;
 
-  context->cov_diag = (p(2, k + 1) *
-                      ((1 - p(2, k - 1)) / (1 - p(2, 1))) -
-                      (k - 1) * p(2, 2 * k)) * 2;
+  context->cov_diag = (p (2, k + 1) *
+                      ((1 - p (2, k - 1)) / (1 - p (2, 1))) -
+                      (k - 1) * p (2, 2 * k)) * 2;
 
   for (i = 1; i < k; i++)
     for (j = 0; j < i; j++)
@@ -83,10 +86,10 @@ saft_stats_context_new (unsigned int word_size,
         unsigned int nu = (k - j) / (i - j);
         unsigned int ro = (k - j) % (i - j);
 
-        context->cov_ac1 += (p(2, 2 * j) *
-                            p(2 * nu + 3, ro) *
-                            p(2 * nu + 1, i - j - ro) -
-                            p(2, 2 * k));
+        context->cov_ac1 += (p (2, 2 * j) *
+                            p (2 * nu + 3, ro) *
+                            p (2 * nu + 1, i - j - ro) -
+                            p (2, 2 * k));
       }
   context->cov_ac1 *= 4;
 
@@ -108,7 +111,7 @@ saft_stats_context_new (unsigned int word_size,
                 t++;
               if (x + i <= ro)
                 t++;
-              prod1 *= p(t, 1);
+              prod1 *= p (t, 1);
             }
           for (x = 1; x <= i; x++)
             {
@@ -118,12 +121,12 @@ saft_stats_context_new (unsigned int word_size,
                 t++;
               if (x + j <= ro)
                 t++;
-              prod2 *= p(t, 1);
+              prod2 *= p (t, 1);
             }
           context->cov_ac2 += prod1 * prod2;
         }
     }
-  context->cov_ac2 -= (k - 1) * (k - 1) * p(2, 2 * k);
+  context->cov_ac2 -= (k - 1) * (k - 1) * p (2, 2 * k);
   context->cov_ac2 *= 2;
 
   return context;

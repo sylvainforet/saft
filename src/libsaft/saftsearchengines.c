@@ -22,6 +22,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "saftfasta.h"
@@ -99,7 +100,7 @@ search_engine_generic_search_two_sequences (SaftSearchEngine *engine,
                                             SaftSequence     *subject)
 {
   SearchEngineGeneric *se;
-  
+
   se = (SearchEngineGeneric*) engine;
   se++;
 
@@ -112,7 +113,7 @@ search_engine_generic_search_all (SaftSearchEngine *engine,
                                   const char       *db_path)
 {
   SearchEngineGeneric *se;
-  
+
   se = (SearchEngineGeneric*) engine;
   se++;
 
@@ -162,45 +163,50 @@ struct _SearchEngineDNAArray
 };
 
 
-static void        search_engine_dna_array_free                 (SaftSearchEngine     *engine);
+static void          search_engine_dna_array_free                 (SaftSearchEngine     *engine);
 
-static WordCount*  search_engine_dna_array_hash_sequence        (SearchEngineDNAArray *engine,
-                                                                 SaftSequence         *sequence);
+static WordCount*    search_engine_dna_array_hash_sequence        (SearchEngineDNAArray *engine,
+                                                                   SaftSequence         *sequence);
 
-static SaftSearch* search_engine_dna_array_search_two_sequences (SaftSearchEngine     *engine,
-                                                                 SaftSequence         *query,
-                                                                 SaftSequence         *subject);
+static unsigned long search_engine_dna_array_d2                   (SearchEngineDNAArray *engine,
+                                                                   WordCount            *counts1,
+                                                                   WordCount            *counts2);
 
-static SaftSearch* search_engine_dna_array_search_all           (SaftSearchEngine     *engine,
-                                                                 const char           *query_path,
-                                                                 const char           *db_path);
 
-static SaftSearch* search_engine_dna_array_search_all_no_cache  (SearchEngineDNAArray *engine,
-                                                                 const char           *query_path,
-                                                                 const char           *db_path);
+static SaftSearch*   search_engine_dna_array_search_two_sequences (SaftSearchEngine     *engine,
+                                                                   SaftSequence         *query,
+                                                                   SaftSequence         *subject);
 
-static SaftSearch* search_engine_dna_array_search_all_qcached   (SearchEngineDNAArray *engine,
-                                                                 const char           *query_path,
-                                                                 const char           *db_path);
+static SaftSearch*   search_engine_dna_array_search_all           (SaftSearchEngine     *engine,
+                                                                   const char           *query_path,
+                                                                   const char           *db_path);
 
-static SaftSearch* search_engine_dna_array_search_all_dcached   (SearchEngineDNAArray *engine,
-                                                                 const char           *query_path,
-                                                                 const char           *db_path);
+static SaftSearch*   search_engine_dna_array_search_all_no_cache  (SearchEngineDNAArray *engine,
+                                                                   const char           *query_path,
+                                                                   const char           *db_path);
 
-static int         search_engine_dna_array_cache_sequence       (SaftSequence         *sequence,
-                                                                 void                 *data);
+static SaftSearch*   search_engine_dna_array_search_all_qcached   (SearchEngineDNAArray *engine,
+                                                                   const char           *query_path,
+                                                                   const char           *db_path);
 
-static int         search_engine_dna_array_search_query         (SaftSequence         *sequence,
-                                                                 void                 *data);
+static SaftSearch*   search_engine_dna_array_search_all_dcached   (SearchEngineDNAArray *engine,
+                                                                   const char           *query_path,
+                                                                   const char           *db_path);
 
-static int         search_engine_dna_array_search_db            (SaftSequence         *sequence,
-                                                                 void                 *data);
+static int           search_engine_dna_array_cache_sequence       (SaftSequence         *sequence,
+                                                                   void                 *data);
 
-static int         search_engine_dna_array_queries_iter_func    (SaftSequence         *sequence,
-                                                                 void                 *data);
+static int           search_engine_dna_array_search_query         (SaftSequence         *sequence,
+                                                                   void                 *data);
 
-static int         search_engine_dna_array_db_iter_func         (SaftSequence         *sequence,
-                                                                 void                 *data);
+static int           search_engine_dna_array_search_db            (SaftSequence         *sequence,
+                                                                   void                 *data);
+
+static int           search_engine_dna_array_queries_iter_func    (SaftSequence         *sequence,
+                                                                   void                 *data);
+
+static int           search_engine_dna_array_db_iter_func         (SaftSequence         *sequence,
+                                                                   void                 *data);
 
 
 
@@ -221,6 +227,7 @@ saft_search_engine_dna_array_new (SaftOptions *options)
   engine->db_cache                           = NULL;
   engine->search                             = NULL;
   engine->search_array                       = NULL;
+  engine->tmp_search                         = NULL;
   engine->tmp_counts                         = NULL;
   engine->n_queries                          = 0;
   engine->max_words                          = 1 << (2 * options->word_size);
@@ -269,7 +276,7 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
   /* FIXME Handle periodic boundary conditions */
   for (i = 0; i < k; i++)
     {
-      const unsigned char c = char_to_bin_table[i];
+      const unsigned char c = char_to_bin_table[(int)sequence->seq[i]];
 
       w <<= 2;
       w |= c;
@@ -277,14 +284,131 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
   ++counts[w];
   for (i = k; i < sequence->seq_length; i++)
     {
-      const unsigned char c = char_to_bin_table[i];
+      const unsigned char c = char_to_bin_table[(int)sequence->seq[i]];
 
       w <<= 2;
       w |= c;
       w &= mask;
       ++counts[w];
     }
+
   return counts;
+}
+
+#ifdef __SSE2__
+
+#include <emmintrin.h>
+
+inline static short
+sse2_inner_s (const uint16_t *p1,
+              const uint16_t *p2,
+              const size_t    size)
+{
+  unsigned long d2 = 0;
+  unsigned int  i;
+
+  __m128i* mp1 = (__m128i *)p1;
+  __m128i* mp2 = (__m128i *)p2;
+
+  for (i = 0; i < size; i += 8)
+    {
+      uint16_t res[8];
+      __m128i *pmres;
+
+      __m128i mtmp = _mm_mullo_epi16 (_mm_loadu_si128 (mp1),
+                                      _mm_loadu_si128 (mp2));
+
+      pmres = (__m128i*)res;
+      _mm_storeu_si128 (pmres, mtmp);
+      d2 += res[0]+res[1]+res[2]+res[3]+res[4]+res[5]+res[6]+res[7];
+
+      mp1++;
+      mp2++;
+    }
+
+
+  return d2;
+}
+
+/* FIXME The emplementation below should be the best one if SSE4_1 is properly supported */
+#ifdef __SSE4_1__
+#if 0
+#include <smmintrin.h>
+
+inline static short
+sse2_inner_s (const uint16_t *p1,
+              const uint16_t *p2,
+              size_t          size)
+{
+  unsigned long res[4];
+  unsigned int  i;
+
+  __m128i* mp1  = (__m128i *)p1;
+  __m128i* mp2  = (__m128i *)p2;
+  __m128i  mres = _mm_set_epi32 (0, 0, 0, 0);
+
+  for (i = 0; i < size; i += 8)
+    {
+
+      __m128i mreg1 = _mm_loadu_si128 (mp1);
+      __m128i mreg2 = _mm_loadu_si128 (mp2);
+      __m128i xlo1  = _mm_unpacklo_epi16 (mreg1, _mm_set1_epi16 (0));
+      __m128i xlo2  = _mm_unpacklo_epi16 (mreg2, _mm_set1_epi16 (0));
+      __m128i mtmp  = _mm_mullo_epi32 (xlo1, xlo2);
+      mres          = _mm_add_epi32 (mres, mtmp);
+
+      __m128i xhi1 = _mm_unpackhi_epi16 (mreg1, _mm_set1_epi16 (0));
+      __m128i xhi2 = _mm_unpackhi_epi16 (mreg2, _mm_set1_epi16 (0));
+      mtmp         = _mm_mullo_epi32 (xhi1, xhi2);
+      mres         = _mm_add_epi32 (mres, mtmp);
+
+      /*
+      __m128i xlo1  = _mm_unpacklo_epi16 (_mm_loadu_si128 (mp1), _mm_set1_epi16 (0));
+      __m128i xlo2  = _mm_unpacklo_epi16 (_mm_loadu_si128 (mp2), _mm_set1_epi16 (0));
+      __m128i mtmp  = _mm_mullo_epi32 (xlo1, xlo2);
+      mres          = _mm_add_epi32 (mres, mtmp);
+
+      __m128i xhi1  = _mm_unpackhi_epi16 (_mm_loadu_si128 (mp1), _mm_set1_epi16 (0));
+      __m128i xhi2  = _mm_unpackhi_epi16 (_mm_loadu_si128 (mp2), _mm_set1_epi16 (0));
+      mtmp          = _mm_mullo_epi32 (xhi1, xhi2);
+      mres          = _mm_add_epi32 (mres, mtmp);
+      */
+
+      mp1++;
+      mp2++;
+    }
+
+  __m128i* pmres = (__m128i *)res;
+  _mm_storeu_si128 (pmres, mres);
+
+  return res[0]+res[1]+res[2]+res[3];
+}
+#endif
+#endif /* __SSE4_1__ */
+
+#endif /* __SSE2__ */
+
+
+static unsigned long
+search_engine_dna_array_d2 (SearchEngineDNAArray *engine,
+                            WordCount            *counts1,
+                            WordCount            *counts2)
+{
+#ifdef __SSE2__
+
+  return sse2_inner_s (counts1, counts2, engine->max_words);
+
+#else /* __SSE2__ */
+
+  unsigned long d2 = 0;
+  int           i;
+
+  for (i = 0; i < engine->max_words; i++)
+    d2 += counts1[i] * counts2[i];
+
+  return d2;
+
+#endif /* __SSE2__ */
 }
 
 static SaftSearch*
@@ -299,30 +423,24 @@ search_engine_dna_array_search_two_sequences (SaftSearchEngine *engine,
   WordCount            *counts_subject;
   double                mean;
   double                var;
-  int                   i;
 
   se = (SearchEngineDNAArray*) engine;
 
-  counts_query   = search_engine_dna_array_hash_sequence (se, query);
-  counts_subject = search_engine_dna_array_hash_sequence (se, subject);
-
-  result = saft_result_new ();
-  for (i = se->max_words - 1; i >= 0; i--)
-    result->d2 += counts_query[i] * counts_subject[i];
-
-  mean = saft_stats_mean (se->stats_context,
-                          query->seq_length,
-                          subject->seq_length);
-  var  = saft_stats_mean (se->stats_context,
-                          query->seq_length,
-                          subject->seq_length);
-
+  counts_query         = search_engine_dna_array_hash_sequence (se, query);
+  counts_subject       = search_engine_dna_array_hash_sequence (se, subject);
+  result               = saft_result_new ();
+  result->d2           = search_engine_dna_array_d2 (se, counts_query, counts_subject);
+  mean                 = saft_stats_mean (se->stats_context,
+                                          query->seq_length,
+                                          subject->seq_length);
+  var                  = saft_stats_mean (se->stats_context,
+                                          query->seq_length,
+                                          subject->seq_length);
   result->name         = strdup(subject->name);
   result->p_value      = saft_stats_pgamma_m_v (result->d2, mean, var);
   result->p_value_adj  = result->p_value;
-
-  search                 = saft_search_new (1);
-  search->name           = strdup(query->name);
+  search               = saft_search_new (1);
+  search->name         = strdup(query->name);
   saft_search_add_result (search, result);
 
   free (counts_query);
@@ -337,19 +455,20 @@ search_engine_dna_array_search_all (SaftSearchEngine *engine,
                                     const char       *db_path)
 {
   SearchEngineDNAArray *se;
-  SaftSearch           *ret = NULL;
+  SaftSearch           *search = NULL;
 
 
   se = (SearchEngineDNAArray*) engine;
 
   if (engine->options->cache_db)
-    ret = search_engine_dna_array_search_all_dcached (se, query_path, db_path);
+    search = search_engine_dna_array_search_all_dcached (se, query_path, db_path);
   else if (engine->options->cache_queries)
-    ret = search_engine_dna_array_search_all_qcached (se, query_path, db_path);
+    search = search_engine_dna_array_search_all_qcached (se, query_path, db_path);
   else
-    ret = search_engine_dna_array_search_all_no_cache (se, query_path, db_path);
+    search = search_engine_dna_array_search_all_no_cache (se, query_path, db_path);
 
-  return ret;
+  se->search = NULL;
+  return search;
 }
 
 static SaftSearch*
@@ -357,16 +476,13 @@ search_engine_dna_array_search_all_no_cache (SearchEngineDNAArray *engine,
                                              const char           *query_path,
                                              const char           *db_path)
 {
-  SaftSearch *ret;
-
   saft_fasta_iter (query_path,
                    search_engine_dna_array_queries_iter_func,
                    engine);
 
-  ret = engine->search;
-  engine->search = NULL;
+  engine->search = saft_search_reverse (engine->search);
 
-  return ret;
+  return engine->search;
 }
 
 static int
@@ -395,8 +511,8 @@ search_engine_dna_array_queries_iter_func (SaftSequence *sequence,
     {
       engine->tmp_search->next = engine->search;
       engine->search           = engine->tmp_search;
-      engine->tmp_search       = NULL;
     }
+  engine->tmp_search = NULL;
 
   return 1;
 }
@@ -407,29 +523,26 @@ search_engine_dna_array_db_iter_func (SaftSequence *sequence,
 {
   SearchEngineDNAArray *engine;
   WordCount            *counts;
-  unsigned long         d2 = 0;
+  unsigned long         d2;
   double                mean;
   double                var;
-  int                   i;
 
   engine = (SearchEngineDNAArray*)data;
   counts = search_engine_dna_array_hash_sequence (engine, sequence);
-
-  for (i = 0; i < engine->max_words; i++)
-    d2 += engine->tmp_counts[i] * counts[i];
-
+  d2     = search_engine_dna_array_d2 (engine,
+                                       engine->tmp_counts,
+                                       counts);
+  mean   = saft_stats_mean (engine->stats_context,
+                            sequence->seq_length,
+                            engine->tmp_length);
+  var    = saft_stats_mean (engine->stats_context,
+                            sequence->seq_length,
+                            engine->tmp_length);
   free (counts);
-
-  mean = saft_stats_mean (engine->stats_context,
-                          sequence->seq_length,
-                          engine->tmp_length);
-  var  = saft_stats_mean (engine->stats_context,
-                          sequence->seq_length,
-                          engine->tmp_length);
 
   /* FIXME adjust this euristic depending on the user's required significance level */
   /* Fix this here and everywhere else in this file */
-  if (d2 >= mean + 2 * sqrt (var))
+  if (d2 > mean + 2 * sqrt (var))
     {
       SaftResult    *result;
 
@@ -483,6 +596,8 @@ search_engine_dna_array_search_all_dcached (SearchEngineDNAArray *engine,
                    search_engine_dna_array_search_query,
                    engine);
 
+  engine->search = saft_search_reverse (engine->search);
+
   return engine->search;
 }
 
@@ -502,14 +617,13 @@ search_engine_dna_array_search_query (SaftSequence *sequence,
 
   for (entry = engine->db_cache; entry; entry = entry->next)
     {
-      unsigned long d2 = 0;
+      unsigned long d2;
       double        mean;
       double        var;
-      int           i;
 
-      for (i = 0; i < engine->max_words; i++)
-        d2 += entry->counts[i] * counts[i];
-
+      d2   = search_engine_dna_array_d2 (engine,
+                                         entry->counts,
+                                         counts);
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
@@ -518,9 +632,7 @@ search_engine_dna_array_search_query (SaftSequence *sequence,
                               entry->length);
 
       /* FIXME adjust this euristic depending on the user's required significance level */
-      if (d2 < mean + 2 * sqrt (var))
-          continue;
-      else
+      if (d2 > mean + 2 * sqrt (var))
         {
           SaftResult    *result;
 
@@ -532,13 +644,15 @@ search_engine_dna_array_search_query (SaftSequence *sequence,
         }
     }
 
-  if (search->n_results > 0)
+  free (counts);
+
+  if (search->n_results == 0)
+    saft_search_free (search);
+  else
     {
       search->next = engine->search;
       engine->search = search;
     }
-  else
-    saft_search_free (search);
 
   return 1;
 }
@@ -548,7 +662,7 @@ search_engine_dna_array_search_all_qcached (SearchEngineDNAArray *engine,
                                             const char           *query_path,
                                             const char           *db_path)
 {
-  size_t i;
+  unsigned long i;
 
   saft_fasta_iter (query_path,
                    search_engine_dna_array_cache_sequence,
@@ -588,14 +702,13 @@ search_engine_dna_array_search_db (SaftSequence *sequence,
 
   for (entry = engine->query_cache; entry; entry = entry->next)
     {
-      unsigned long d2 = 0;
+      unsigned long d2;
       double        mean;
       double        var;
-      int           i;
 
-      for (i = 0; i < engine->max_words; i++)
-        d2 += entry->counts[i] * counts[i];
-
+      d2   = search_engine_dna_array_d2 (engine,
+                                         entry->counts,
+                                         counts);
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
@@ -603,12 +716,7 @@ search_engine_dna_array_search_db (SaftSequence *sequence,
                               sequence->seq_length,
                               entry->length);
 
-      if (d2 < mean + 2 * sqrt (var))
-        {
-          query_idx++;
-          continue;
-        }
-      else
+      if (d2 > mean + 2 * sqrt (var))
         {
           SaftSearch *search;
           SaftResult *result;
@@ -630,6 +738,8 @@ search_engine_dna_array_search_db (SaftSequence *sequence,
         }
       query_idx++;
     }
+
+  free (counts);
 
   return 1;
 }

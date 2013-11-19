@@ -45,7 +45,7 @@ struct _SaftStatsContext
 };
 
 SaftStatsContext* saft_stats_context_new  (unsigned int      word_size,
-                                           double           *letters_frequencies,
+                                           double           *letter_frequencies,
                                            unsigned int      n_letters);
 
 void              saft_stats_context_free (SaftStatsContext *context);

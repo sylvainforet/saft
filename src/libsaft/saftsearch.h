@@ -159,6 +159,10 @@ SaftSearch* saft_search_new             (unsigned int  max_results);
 
 void        saft_search_free            (SaftSearch   *search);
 
+void        saft_search_free_all        (SaftSearch   *search);
+
+SaftSearch*  saft_search_reverse        (SaftSearch   *search);
+
 void        saft_search_add_result      (SaftSearch   *search,
                                          SaftResult   *result);
 
