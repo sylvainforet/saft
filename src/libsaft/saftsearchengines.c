@@ -396,7 +396,18 @@ search_engine_dna_array_d2 (SearchEngineDNAArray *engine,
 {
 #ifdef __SSE2__
 
-  return sse2_inner_s (counts1, counts2, engine->max_words);
+  if (engine->max_words < 8)
+    {
+      unsigned long d2 = 0;
+      int           i;
+
+      for (i = 0; i < engine->max_words; i++)
+        d2 += counts1[i] * counts2[i];
+
+      return d2;
+    }
+  else
+    return sse2_inner_s (counts1, counts2, engine->max_words);
 
 #else /* __SSE2__ */
 
