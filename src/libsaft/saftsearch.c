@@ -212,17 +212,16 @@ saft_search_add_result (SaftSearch *search,
 {
   /* TODO Deal with ties */
 
-  if (search->n_results > 0 && result->p_value > search->results[0]->p_value)
-    {
-      saft_result_free (result);
-      return;
-    }
-
   if (search->n_results == search->max_results)
     {
+      if (result->p_value > search->results[0]->p_value)
+        {
+          saft_result_free (result);
+          return;
+        }
       saft_result_free (search->results[0]);
       search->results[0] = search->results[search->n_results - 1];
-      search->results[search->n_results - 1] = NULL;  /* TODO do we really need to do this ? */
+      search->results[search->n_results - 1] = NULL;
       search->n_results--;
       results_heap_heapify (search);
     }
