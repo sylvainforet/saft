@@ -37,15 +37,15 @@ SaftAlphabet SaftAlphabetDNA =
   .codes   = 
     {
       ['N'] = 0,
-      ['A'] = 1,
-      ['T'] = 2,
-      ['G'] = 3,
-      ['C'] = 4,
+      ['A'] = NUC_A,
+      ['T'] = NUC_T,
+      ['G'] = NUC_G,
+      ['C'] = NUC_C,
       ['n'] = 0,
-      ['a'] = 1,
-      ['t'] = 2,
-      ['g'] = 3,
-      ['c'] = 4
+      ['a'] = NUC_A,
+      ['t'] = NUC_T,
+      ['g'] = NUC_G,
+      ['c'] = NUC_C
     }
 };
 

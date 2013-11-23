@@ -29,7 +29,7 @@ extern "C"
 {
 #endif
 
-SaftSearchEngine* saft_search_engine_generic       (SaftOptions *options);
+SaftSearchEngine* saft_search_engine_generic_new   (SaftOptions *options);
 
 SaftSearchEngine* saft_search_engine_dna_array_new (SaftOptions *options);
 

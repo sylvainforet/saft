@@ -33,6 +33,21 @@ extern "C"
 
 typedef unsigned char SaftLetter;
 
+/***************/
+/* Nucleotides */
+/***************/
+
+
+typedef enum
+{
+  NUC_A  = 0,
+  NUC_C  = 1,
+  NUC_G  = 2,
+  NUC_T  = 3,
+  NUC_NB = 4
+}
+Nucleotide;
+
 /************/
 /* Alphabet */
 /************/
@@ -49,7 +64,7 @@ struct _SaftAlphabet
   /* The codes indexing the letters
    * Letters of the aphabet start at 1
    * The 0 is for all the unknown codes */
-  SaftLetter    codes[256];
+  SaftLetter    codes[128];
   unsigned int  size;
 };
 
