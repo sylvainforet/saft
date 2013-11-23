@@ -263,11 +263,11 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
 {
   const size_t   k    = engine->search_engine.options->word_size;
   const uint16_t mask = 0xffff >> (16 - (2 * k));
-  WordCount     *counts;
   size_t         i;
   uint16_t       w = 0;
 
-  counts = calloc (engine->max_words, sizeof (*counts));
+  WordCount *counts __attribute__((aligned(1024))) = calloc (engine->max_words, sizeof (*counts));
+  //WordCount *counts  = calloc (engine->max_words, sizeof (*counts));
   if (sequence->seq_length < k)
     return counts;
 
@@ -299,10 +299,10 @@ search_engine_dna_array_hash_sequence (SearchEngineDNAArray *engine,
 
 #include <emmintrin.h>
 
-inline static short
-sse2_inner_s (const uint16_t *p1,
-              const uint16_t *p2,
-              const size_t    size)
+inline static long
+sse2_dot_prod (const uint16_t *p1,
+               const uint16_t *p2,
+               const size_t    size)
 {
   unsigned long d2 = 0;
   unsigned int  i;
@@ -326,19 +326,18 @@ sse2_inner_s (const uint16_t *p1,
       mp2++;
     }
 
-
   return d2;
 }
 
-/* FIXME The emplementation below should be the best one if SSE4_1 is properly supported */
-#ifdef __SSE4_1__
+/* FIXME The implementation below should be the best one if SSE4_1 is properly supported */
 #if 0
+#ifdef __SSE4_1__
 #include <smmintrin.h>
 
 inline static short
-sse2_inner_s (const uint16_t *p1,
-              const uint16_t *p2,
-              size_t          size)
+sse3_dot_prod (const uint16_t *p1,
+               const uint16_t *p2,
+               size_t          size)
 {
   unsigned long res[4];
   unsigned int  i;
@@ -383,8 +382,43 @@ sse2_inner_s (const uint16_t *p1,
 
   return res[0]+res[1]+res[2]+res[3];
 }
-#endif
 #endif /* __SSE4_1__ */
+#endif /* 0 */
+
+#else /* !__SSE2__ */
+
+
+inline static long
+scalar_dot_prod (const uint16_t *p1,
+                 const uint16_t *p2,
+                 const size_t    size)
+{
+      unsigned long d2 = 0;
+      int           i;
+
+      for (i = 0; i < engine->max_words; i += 4)
+        {
+          const unsigned int c11 = p1[i];
+          const unsigned int c12 = p1[i + 1];
+          const unsigned int c13 = p1[i + 2];
+          const unsigned int c14 = p1[i + 3];
+
+          const unsigned int c21 = p2[i];
+          const unsigned int c22 = p2[i + 1];
+          const unsigned int c23 = p2[i + 2];
+          const unsigned int c24 = p2[i + 3];
+
+          const unsigned long p1 = c11 * c21;
+          const unsigned long p2 = c12 * c22;
+          const unsigned long p3 = c13 * c23;
+          const unsigned long p4 = c14 * c24;
+
+          const unsigned long p12 = p1 + p2;
+          const unsigned long p34 = p3 + p4;
+
+          d2 += p12 + p34;
+        }
+}
 
 #endif /* __SSE2__ */
 
@@ -394,8 +428,6 @@ search_engine_dna_array_d2 (SearchEngineDNAArray *engine,
                             WordCount            *counts1,
                             WordCount            *counts2)
 {
-#ifdef __SSE2__
-
   if (engine->max_words < 8)
     {
       unsigned long d2 = 0;
@@ -407,18 +439,10 @@ search_engine_dna_array_d2 (SearchEngineDNAArray *engine,
       return d2;
     }
   else
-    return sse2_inner_s (counts1, counts2, engine->max_words);
-
+#ifdef __SSE2__
+    return sse2_dot_prod (counts1, counts2, engine->max_words);
 #else /* __SSE2__ */
-
-  unsigned long d2 = 0;
-  int           i;
-
-  for (i = 0; i < engine->max_words; i++)
-    d2 += counts1[i] * counts2[i];
-
-  return d2;
-
+    return scalar_dot_prod (counts1, counts2, engine->max_words);
 #endif /* __SSE2__ */
 }
 
