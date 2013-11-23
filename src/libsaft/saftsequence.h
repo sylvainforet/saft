@@ -37,6 +37,9 @@ typedef unsigned char SaftLetter;
 /* Nucleotides */
 /***************/
 
+#define BITS_PER_BYTE   8
+#define BITS_PER_NUC    2
+#define NUCS_PER_BYTE   (BITS_PER_BYTE / BITS_PER_NUC)
 
 typedef enum
 {
