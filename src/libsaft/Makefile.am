@@ -10,7 +10,6 @@ lib_LTLIBRARIES =			\
 libsaft_sources =			\
 	safterror.c			\
 	saftfasta.c			\
-	safthash.c			\
 	saftsearch.c			\
 	saftsearchenginednaarray.c	\
 	saftsearchenginednahash.c	\
@@ -21,7 +20,6 @@ libsaft_sources =			\
 libsaft_headers =			\
 	safterror.h			\
 	saftfasta.h			\
-	safthash.h			\
 	saftsearch.h			\
 	saftsearchengines.h		\
 	saftsequence.h			\
