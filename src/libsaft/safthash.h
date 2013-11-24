@@ -137,6 +137,10 @@ SaftHashNode*  saft_hash_table_lookup_or_create    (SaftHashTable       *hash_ta
 SaftHashNode*  saft_hash_table_lookup              (SaftHashTable       *hash_table,
                                                     const unsigned char *kmer);
 
+SaftHashNode*  saft_hash_table_lookup_with_key     (SaftHashTable       *hash_table,
+                                                    const unsigned char *kmer,
+                                                    unsigned long        key);
+
 void           saft_hash_table_iter_init           (SaftHashTableIter   *iter,
                                                     SaftHashTable       *hash_table);
 

@@ -104,28 +104,27 @@ static const long prime_mod[] =
 };
 
 
-static void saft_hash_table_set_shift (SaftHashTable *hash_table,
-                                       int            shift);
+static void                 saft_hash_table_set_shift                 (SaftHashTable       *hash_table,
+                                                                       int                  shift);
 
-static int  saft_hash_table_find_closest_shift (long n);
+static int                  saft_hash_table_find_closest_shift        (long n);
 
-static void saft_hash_table_set_shift_from_size (SaftHashTable *hash_table,
-                                     long           size);
+static void                 saft_hash_table_set_shift_from_size       (SaftHashTable       *hash_table,
+                                                                       long                 size);
 
-static inline void saft_hash_table_copy_kmer (SaftHashTable       *hash_table,
-                           const unsigned char *kmer1,
-                           SaftHashKmer        *kmer2);
+static inline void          saft_hash_table_copy_kmer                 (SaftHashTable       *hash_table,
+                                                                       const unsigned char *kmer1,
+                                                                       SaftHashKmer        *kmer2);
 
-static inline unsigned long
-saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
-                                           const unsigned char *kmer,
-                                           unsigned long       *hash_return);
+static inline unsigned long saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
+                                                                       const unsigned char *kmer,
+                                                                       unsigned long       *hash_return);
 
 
-static void saft_hash_table_resize (SaftHashTable *hash_table);
+static void                 saft_hash_table_resize                    (SaftHashTable       *hash_table);
 
-static inline int
-saft_hash_table_maybe_resize (SaftHashTable *hash_table);
+static inline int           saft_hash_table_maybe_resize              (SaftHashTable       *hash_table);
+
 
 unsigned long
 saft_hash_generic (const unsigned char *kmer,
@@ -252,7 +251,7 @@ saft_hash_table_copy_kmer (SaftHashTable       *hash_table,
 {
   if (hash_table->kmer_bytes > KMER_VAL_BYTES)
     /* FIXME FIXME FIXME do we really want a terminating '\0' */
-    kmer2->kmer_ptr = (unsigned char*)strndup ((const char*)kmer1, hash_table->kmer_bytes + 1);
+    kmer2->kmer_ptr = (unsigned char*)strndup ((const char*)kmer1, hash_table->kmer_bytes);
   else
     {
       int i;
@@ -278,10 +277,7 @@ SaftHashNode*
 saft_hash_table_lookup (SaftHashTable       *hash_table,
                         const unsigned char *kmer)
 {
-  SaftHashNode *node;
-  unsigned long node_index;
   unsigned long hash_value;
-  unsigned long step = 0;
 
   /* Empty buckets have hash_value set to 0, and for tombstones, it's 1.
    * We need to make sure our hash value is not one of these.
@@ -290,6 +286,22 @@ saft_hash_table_lookup (SaftHashTable       *hash_table,
   if (SAFT_UNLIKELY (hash_value <= 1))
     hash_value = 2;
 
+  return saft_hash_table_lookup_with_key (hash_table, kmer, hash_value);
+}
+
+SaftHashNode*
+saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
+                                 const unsigned char *kmer,
+                                 unsigned long        key)
+{
+  SaftHashNode       *node;
+  unsigned long       node_index;
+  const unsigned long hash_value = key;
+  unsigned long       step       = 0;
+
+  /* Empty buckets have hash_value set to 0, and for tombstones, it's 1.
+   * We need to make sure our hash value is not one of these.
+   */
   node_index = hash_value % hash_table->mod;
   node       = &hash_table->nodes[node_index];
 
@@ -303,13 +315,16 @@ saft_hash_table_lookup (SaftHashTable       *hash_table,
         if (hash_table->key_equal_func (kmer, &node->kmer, hash_table->kmer_bytes))
           break;
       step++;
+      /* Linear probing
+       * TODO compare this with quadratic probing:
+       * node_index += (step * step);
+       * */
       node_index += step;
       node_index &= hash_table->mask;
       node        = &hash_table->nodes[node_index];
     }
   return node->key_hash ? node : NULL;
 }
-
 
 static inline unsigned long
 saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
