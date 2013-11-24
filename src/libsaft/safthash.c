@@ -180,14 +180,14 @@ saft_equal_32bp (const unsigned char *kmer1,
                  size_t               size)
 {
   /* Completely unrolled */
-  const int b1 = (kmer1[0] == kmer2->kmer_val[0]);
-  const int b2 = (kmer1[1] == kmer2->kmer_val[1]);
-  const int b3 = (kmer1[2] == kmer2->kmer_val[2]);
-  const int b4 = (kmer1[3] == kmer2->kmer_val[3]);
-  const int b5 = (kmer1[4] == kmer2->kmer_val[4]);
-  const int b6 = (kmer1[5] == kmer2->kmer_val[5]);
-  const int b7 = (kmer1[6] == kmer2->kmer_val[6]);
-  const int b8 = (kmer1[7] == kmer2->kmer_val[7]);
+  const int b1 = (kmer1[0] == kmer2->kmer_vala[0]);
+  const int b2 = (kmer1[1] == kmer2->kmer_vala[1]);
+  const int b3 = (kmer1[2] == kmer2->kmer_vala[2]);
+  const int b4 = (kmer1[3] == kmer2->kmer_vala[3]);
+  const int b5 = (kmer1[4] == kmer2->kmer_vala[4]);
+  const int b6 = (kmer1[5] == kmer2->kmer_vala[5]);
+  const int b7 = (kmer1[6] == kmer2->kmer_vala[6]);
+  const int b8 = (kmer1[7] == kmer2->kmer_vala[7]);
 
   const int b12 = b1 && b2;
   const int b34 = b3 && b4;
@@ -198,6 +198,9 @@ saft_equal_32bp (const unsigned char *kmer1,
   const int b5678 = b56 && b78;
 
   return b1234 && b5678;
+  /* FIXME This would work just as well:
+   * return *((unsigned long *)kmer1) == *((unsigned long *)kmer2);
+   * */
 }
 
 static void
@@ -244,6 +247,8 @@ saft_hash_table_set_shift_from_size (SaftHashTable *hash_table,
   saft_hash_table_set_shift (hash_table, shift);
 }
 
+/* FIXME FIXME FIXME This function is really wong and we probably dont even
+ * really need it */
 static inline void
 saft_hash_table_copy_kmer (SaftHashTable       *hash_table,
                            const unsigned char *kmer1,
@@ -263,13 +268,13 @@ saft_hash_table_copy_kmer (SaftHashTable       *hash_table,
           const int idx3 = i - 2;
           const int idx4 = i - 1;
 
-          kmer2->kmer_val[idx1] = kmer1[idx1];
-          kmer2->kmer_val[idx2] = kmer1[idx2];
-          kmer2->kmer_val[idx3] = kmer1[idx3];
-          kmer2->kmer_val[idx4] = kmer1[idx4];
+          kmer2->kmer_vala[idx1] = kmer1[idx1];
+          kmer2->kmer_vala[idx2] = kmer1[idx2];
+          kmer2->kmer_vala[idx3] = kmer1[idx3];
+          kmer2->kmer_vala[idx4] = kmer1[idx4];
         }
       for (i -= 4; i < hash_table->kmer_bytes; i++)
-        kmer2->kmer_val[i] = kmer1[i];
+        kmer2->kmer_vala[i] = kmer1[i];
     }
 }
 
@@ -485,7 +490,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
   g_free (touched);
 #undef IS_TOUCHED
 #undef SET_TOUCHED
-#endif
+#endif /* 0 */
 }
 
 static inline int

@@ -35,7 +35,7 @@ extern "C"
 /***************************/
 
 
-#define KMER_VAL_BYTES 8
+#define KMER_VAL_BYTES (sizeof (long))
 #define KMER_VAL_NUCS  (KMER_VAL_BYTES * NUCS_PER_BYTE)
 
 typedef union _SaftHashKmer SaftHashKmer;
@@ -43,15 +43,16 @@ typedef union _SaftHashKmer SaftHashKmer;
 union _SaftHashKmer
 {
   unsigned char *kmer_ptr;
-  unsigned long  kmer_val[KMER_VAL_BYTES];
+  unsigned char  kmer_vala[KMER_VAL_BYTES];
+  unsigned long  kmer_vall;
 };
 
 typedef union _SaftHashValue SaftHashValue;
 
 union _SaftHashValue
 {
-  long int count;
-  void    *ptr;
+  long  count;
+  void *ptr;
 };
 
 typedef struct _SaftHashNode SaftHashNode;
@@ -64,9 +65,9 @@ struct _SaftHashNode
    * If key_hash == 1, node is a tombstone
    * If key_hash >= 2, node contains data
    */
-  unsigned long int key_hash;
+  unsigned long key_hash;
 
-  SaftHashValue     value;
+  SaftHashValue value;
 };
 
 typedef unsigned long (*SaftHashFunc)  (const unsigned char *kmer,

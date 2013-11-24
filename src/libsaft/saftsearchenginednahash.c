@@ -102,7 +102,7 @@ search_engine_dna_hash_hash_sequence (SearchEngineDNAHash  *engine,
 
   if (k <= KMER_VAL_NUCS)
     {
-      const unsigned long mask = 0xffffffffffffffff >> (64 - (2 * k));
+      const unsigned long mask = (~ 0L) >> (8 * sizeof (unsigned long) - (2 * k));
       unsigned long       w    = 0;
 
       for (i = 0; i < k; i++)
