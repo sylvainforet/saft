@@ -341,12 +341,13 @@ saft_search_engine_new (SaftOptions *options)
     {
       if (options->word_size <= 8)
         {
+          /* Array based DNA engine */
           return saft_search_engine_dna_array_new (options);
         }
       else
         {
           /* Hash-Table based DNA engine */
-          saft_error ("Word sizes > 8 not implemented yet");
+          return saft_search_engine_dna_hash_new (options);
         }
     }
   else
