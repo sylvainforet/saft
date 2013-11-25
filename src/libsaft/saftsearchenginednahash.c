@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "safterror.h"
 #include "saftfasta.h"
 #include "safthash.h"
 #include "saftsearchengines.h"
@@ -103,29 +104,30 @@ search_engine_dna_hash_hash_sequence (SearchEngineDNAHash  *engine,
   if (k <= KMER_VAL_NUCS)
     {
       const unsigned long mask = (~ 0L) >> (8 * sizeof (unsigned long) - (2 * k));
-      unsigned long       w    = 0;
+      SaftHashKmer        kmer;
 
       for (i = 0; i < k; i++)
         {
           const unsigned char c = SaftAlphabetDNA.codes[(int)sequence->seq[i]];
 
-          w <<= 2;
-          w |= c;
+          kmer.kmer_vall <<= 2;
+          kmer.kmer_vall |= c;
         }
-      saft_hash_table_increment (table, (unsigned char*) &w);
+      saft_hash_table_increment (table, &kmer);
       for (i = k; i < sequence->seq_length; i++)
         {
           const unsigned char c = SaftAlphabetDNA.codes[(int)sequence->seq[i]];
 
-          w <<= 2;
-          w |= c;
-          w &= mask;
-          saft_hash_table_increment (table, (unsigned char*) &w);
+          kmer.kmer_vall <<= 2;
+          kmer.kmer_vall |= c;
+          kmer.kmer_vall &= mask;
+          saft_hash_table_increment (table, &kmer);
         }
     }
   else
     {
-      /* FIXME implement this */
+      saft_error ("[ERROR] saftn with words > %dbp not implemented", KMER_VAL_NUCS);
+      exit (1);
     }
 
   return table;
@@ -143,15 +145,11 @@ search_engine_dna_hash_d2 (SearchEngineDNAHash  *engine,
   saft_hash_table_iter_init (&iter, counts1);
 
   /* FIXME iterate over the smallest table would probably be better */
-  for (node = saft_hash_table_iter_next (&iter);
-       node;
-       node = saft_hash_table_iter_next (&iter))
+  while ((node = saft_hash_table_iter_next (&iter)))
     {
-      SaftHashNode *res;
-
-      res = saft_hash_table_lookup_with_key (counts2,
-                                             node->kmer.kmer_ptr,
-                                             node->key_hash);
+      const SaftHashNode *res = saft_hash_table_lookup_with_key (counts2,
+                                                                 &node->kmer,
+                                                                 node->key_hash);
       if (res)
         d2 += node->value.count * res->value.count;
     }

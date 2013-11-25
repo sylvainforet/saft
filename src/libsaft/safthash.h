@@ -70,10 +70,10 @@ struct _SaftHashNode
   SaftHashValue value;
 };
 
-typedef unsigned long (*SaftHashFunc)  (const unsigned char *kmer,
+typedef unsigned long (*SaftHashFunc)  (const SaftHashKmer  *kmer,
                                         size_t               size);
-typedef int           (*SaftEqualFunc) (const unsigned char *saft1,
-                                        SaftHashKmer        *saft2,
+typedef int           (*SaftEqualFunc) (const SaftHashKmer  *saft1,
+                                        const SaftHashKmer  *saft2,
                                         size_t               size);
 
 typedef struct _SaftHashTable  SaftHashTable;
@@ -103,18 +103,18 @@ struct _SaftHashTableIter
   long           position;
 };
 
-unsigned long   saft_hash_generic                  (const unsigned char *kmer,
+unsigned long  saft_hash_generic                   (const SaftHashKmer  *kmer,
                                                     size_t               size);
 
-int            saft_equal_generic                  (const unsigned char *kmer1,
-                                                    SaftHashKmer        *kmer2,
+int            saft_equal_generic                  (const SaftHashKmer  *kmer1,
+                                                    const SaftHashKmer  *kmer2,
                                                     size_t               size);
 
-unsigned long  saft_hash_32bp                      (const unsigned char *kmer,
+unsigned long  saft_hash_long                      (const SaftHashKmer  *kmer,
                                                     size_t               size);
 
-int            saft_equal_32bp                     (const unsigned char *saft1,
-                                                    SaftHashKmer        *saft2,
+int            saft_equal_long                     (const SaftHashKmer  *kmer1,
+                                                    const SaftHashKmer  *kmer2,
                                                     size_t               size);
 
 SaftHashTable* saft_hash_table_new                 (size_t               k);
@@ -126,20 +126,20 @@ SaftHashTable* saft_hash_table_new_full            (SaftHashFunc         hash_fu
 void           saft_hash_table_destroy             (SaftHashTable       *hash_table);
 
 void           saft_hash_table_increment           (SaftHashTable       *hash_table,
-                                                    const unsigned char *kmer);
+                                                    const SaftHashKmer  *kmer);
 
 void           saft_hash_table_add_count           (SaftHashTable       *hash_table,
-                                                    const unsigned char *kmer,
+                                                    const SaftHashKmer  *kmer,
                                                     long                 count);
 
 SaftHashNode*  saft_hash_table_lookup_or_create    (SaftHashTable       *hash_table,
-                                                    const unsigned char *kmer);
+                                                    const SaftHashKmer  *kmer);
 
 SaftHashNode*  saft_hash_table_lookup              (SaftHashTable       *hash_table,
-                                                    const unsigned char *kmer);
+                                                    const SaftHashKmer  *kmer);
 
 SaftHashNode*  saft_hash_table_lookup_with_key     (SaftHashTable       *hash_table,
-                                                    const unsigned char *kmer,
+                                                    const SaftHashKmer  *kmer,
                                                     unsigned long        key);
 
 void           saft_hash_table_iter_init           (SaftHashTableIter   *iter,

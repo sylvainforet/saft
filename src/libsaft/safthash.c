@@ -28,6 +28,9 @@
 #include "safthash.h"
 #include "saftutils.h"
 
+
+/* TODO we dont need tombstones in this particular implementation */
+
 #define HASH_TABLE_MIN_SHIFT 3  /* 1 << 3 == 8 buckets */
 
 /* Each table size has an associated prime modulo (the first prime
@@ -103,6 +106,12 @@ static const long prime_mod[] =
   18446744073709551557ul
 };
 
+/* TODO compare the two types of probing */
+/* For linear probing */
+#define saft_hash_table_probe(step) (step)
+/* For qudratic probing probing */
+/* #define saft_hash_table_probe(step) ((step) * (step)) */
+
 
 static void                 saft_hash_table_set_shift                 (SaftHashTable       *hash_table,
                                                                        int                  shift);
@@ -113,11 +122,11 @@ static void                 saft_hash_table_set_shift_from_size       (SaftHashT
                                                                        long                 size);
 
 static inline void          saft_hash_table_copy_kmer                 (SaftHashTable       *hash_table,
-                                                                       const unsigned char *kmer1,
-                                                                       SaftHashKmer        *kmer2);
+                                                                       SaftHashKmer        *dst,
+                                                                       const SaftHashKmer  *src);
 
 static inline unsigned long saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
-                                                                       const unsigned char *kmer,
+                                                                       const SaftHashKmer  *kmer,
                                                                        unsigned long       *hash_return);
 
 
@@ -126,40 +135,36 @@ static void                 saft_hash_table_resize                    (SaftHashT
 static inline int           saft_hash_table_maybe_resize              (SaftHashTable       *hash_table);
 
 
+/* This is the djb2 hash function */
 unsigned long
-saft_hash_generic (const unsigned char *kmer,
-                   size_t               size)
+saft_hash_generic (const SaftHashKmer *kmer,
+                   size_t              size)
 {
-  unsigned long int hash = 0;
+  unsigned long int hash = 5381;
   unsigned int      i    = 0;
 
   do
     {
-      hash <<= 8;
-      hash  |= kmer[i];
+      hash = ((hash << 5) + hash) + kmer->kmer_ptr[i];
+      /* TODO test the alternative: */
+      /* hash = ((hash << 5) + hash) ^ kmer.kmer_ptr[i]; */
     }
   while (++i < size);
 
-  return ((long)(hash * 2654435769U));
+  return hash;
 }
 
 int
-saft_equal_generic (const unsigned char *kmer1,
-                    SaftHashKmer        *kmer2,
-                    size_t               size)
+saft_equal_generic (const SaftHashKmer *kmer1,
+                    const SaftHashKmer *kmer2,
+                    size_t              size)
 {
-  unsigned int i;
-
-  for (i = 0; i < size; i++)
-    if (kmer1[i] != kmer2->kmer_ptr[i])
-      return 0;
-
-  return 1;
+  return memcmp (kmer1->kmer_ptr, kmer2->kmer_ptr, size);
 }
 
 unsigned long
-saft_hash_32bp (const unsigned char *kmer,
-                size_t               size)
+saft_hash_long (const SaftHashKmer *kmer,
+                size_t              size)
 {
   unsigned long key = *((unsigned long*)kmer);
 
@@ -175,32 +180,11 @@ saft_hash_32bp (const unsigned char *kmer,
 }
 
 int
-saft_equal_32bp (const unsigned char *kmer1,
-                 SaftHashKmer        *kmer2,
-                 size_t               size)
+saft_equal_long (const SaftHashKmer *kmer1,
+                 const SaftHashKmer *kmer2,
+                 size_t              size)
 {
-  /* Completely unrolled */
-  const int b1 = (kmer1[0] == kmer2->kmer_vala[0]);
-  const int b2 = (kmer1[1] == kmer2->kmer_vala[1]);
-  const int b3 = (kmer1[2] == kmer2->kmer_vala[2]);
-  const int b4 = (kmer1[3] == kmer2->kmer_vala[3]);
-  const int b5 = (kmer1[4] == kmer2->kmer_vala[4]);
-  const int b6 = (kmer1[5] == kmer2->kmer_vala[5]);
-  const int b7 = (kmer1[6] == kmer2->kmer_vala[6]);
-  const int b8 = (kmer1[7] == kmer2->kmer_vala[7]);
-
-  const int b12 = b1 && b2;
-  const int b34 = b3 && b4;
-  const int b56 = b5 && b6;
-  const int b78 = b7 && b8;
-
-  const int b1234 = b12 && b34;
-  const int b5678 = b56 && b78;
-
-  return b1234 && b5678;
-  /* FIXME This would work just as well:
-   * return *((unsigned long *)kmer1) == *((unsigned long *)kmer2);
-   * */
+  return kmer1->kmer_vall == kmer2->kmer_vall;
 }
 
 static void
@@ -247,40 +231,22 @@ saft_hash_table_set_shift_from_size (SaftHashTable *hash_table,
   saft_hash_table_set_shift (hash_table, shift);
 }
 
-/* FIXME FIXME FIXME This function is really wong and we probably dont even
- * really need it */
 static inline void
-saft_hash_table_copy_kmer (SaftHashTable       *hash_table,
-                           const unsigned char *kmer1,
-                           SaftHashKmer        *kmer2)
+saft_hash_table_copy_kmer (SaftHashTable      *hash_table,
+                           SaftHashKmer       *dst,
+                           const SaftHashKmer *src)
 {
   if (hash_table->kmer_bytes > KMER_VAL_BYTES)
-    /* FIXME FIXME FIXME do we really want a terminating '\0' */
-    kmer2->kmer_ptr = (unsigned char*)strndup ((const char*)kmer1, hash_table->kmer_bytes);
+    dst->kmer_ptr = memcpy (dst->kmer_ptr,
+                            src->kmer_ptr,
+                            hash_table->kmer_bytes);
   else
-    {
-      int i;
-
-      for (i = 4; i < hash_table->kmer_bytes; i += 4)
-        {
-          const int idx1 = i - 4;
-          const int idx2 = i - 3;
-          const int idx3 = i - 2;
-          const int idx4 = i - 1;
-
-          kmer2->kmer_vala[idx1] = kmer1[idx1];
-          kmer2->kmer_vala[idx2] = kmer1[idx2];
-          kmer2->kmer_vala[idx3] = kmer1[idx3];
-          kmer2->kmer_vala[idx4] = kmer1[idx4];
-        }
-      for (i -= 4; i < hash_table->kmer_bytes; i++)
-        kmer2->kmer_vala[i] = kmer1[i];
-    }
+    dst->kmer_ptr = src->kmer_ptr;
 }
 
 SaftHashNode*
 saft_hash_table_lookup (SaftHashTable       *hash_table,
-                        const unsigned char *kmer)
+                        const SaftHashKmer  *kmer)
 {
   unsigned long hash_value;
 
@@ -296,7 +262,7 @@ saft_hash_table_lookup (SaftHashTable       *hash_table,
 
 SaftHashNode*
 saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
-                                 const unsigned char *kmer,
+                                 const SaftHashKmer  *kmer,
                                  unsigned long        key)
 {
   SaftHashNode       *node;
@@ -320,11 +286,7 @@ saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
         if (hash_table->key_equal_func (kmer, &node->kmer, hash_table->kmer_bytes))
           break;
       step++;
-      /* Linear probing
-       * TODO compare this with quadratic probing:
-       * node_index += (step * step);
-       * */
-      node_index += step;
+      node_index += saft_hash_table_probe (step);
       node_index &= hash_table->mask;
       node        = &hash_table->nodes[node_index];
     }
@@ -332,9 +294,9 @@ saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
 }
 
 static inline unsigned long
-saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
-                                           const unsigned char *kmer,
-                                           unsigned long       *hash_return)
+saft_hash_table_lookup_node_for_insertion (SaftHashTable      *hash_table,
+                                           const SaftHashKmer *kmer,
+                                           unsigned long      *hash_return)
 {
   SaftHashNode *node;
   unsigned long node_index;
@@ -354,6 +316,7 @@ saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
   node_index   = hash_value % hash_table->mod;
   node         = &hash_table->nodes[node_index];
 
+  /* TODO this would be slightly simpler and faster if there was no tombstone */
   while (node->key_hash)
     {
       /* We first check if our full hash values
@@ -371,7 +334,7 @@ saft_hash_table_lookup_node_for_insertion (SaftHashTable       *hash_table,
           have_tombstone  = 1;
         }
       step++;
-      node_index += step;
+      node_index += saft_hash_table_probe (step);
       node_index &= hash_table->mask;
       node        = &hash_table->nodes[node_index];
     }
@@ -409,7 +372,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
       while (new_node->key_hash)
         {
           step++;
-          hash_val += step;
+          hash_val += saft_hash_table_probe (step);
           hash_val &= hash_table->mask;
           new_node  = &new_nodes[hash_val];
         }
@@ -419,7 +382,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
     }
 
   free (hash_table->nodes);
-  hash_table->nodes = new_nodes;
+  hash_table->nodes     = new_nodes;
   hash_table->noccupied = hash_table->nnodes;
 
 #if 0
@@ -480,7 +443,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
           else
             {
               step++;
-              hash_val += step;
+              hash_val += saft_hash_table_probe (step);
               hash_val &= hash_table->mask;
             }
           next_node = &hash_table->nodes[hash_val];
@@ -514,8 +477,8 @@ saft_hash_table_new (size_t k)
   SaftHashTable *hash_table;
 
   if (k <= KMER_VAL_NUCS)
-    hash_table = saft_hash_table_new_full (saft_hash_32bp,
-                                           saft_equal_32bp,
+    hash_table = saft_hash_table_new_full (saft_hash_long,
+                                           saft_equal_long,
                                            k);
   else
     hash_table = saft_hash_table_new_full (saft_hash_generic,
@@ -540,6 +503,7 @@ saft_hash_table_new_full (SaftHashFunc  hash_func,
   hash_table->key_equal_func     = key_equal_func;
   hash_table->nodes              = calloc (hash_table->size, sizeof (*hash_table->nodes));
   hash_table->k                  = k;
+  /* FIXME Change this depending on the alphabet being used */
   hash_table->kmer_bytes         = (k + NUCS_PER_BYTE - 1) / NUCS_PER_BYTE;
 
   return hash_table;
@@ -586,16 +550,16 @@ saft_hash_table_destroy (SaftHashTable *hash_table)
 }
 
 void
-saft_hash_table_increment (SaftHashTable       *hash_table,
-                           const unsigned char *kmer)
+saft_hash_table_increment (SaftHashTable      *hash_table,
+                           const SaftHashKmer *kmer)
 {
   saft_hash_table_add_count (hash_table, kmer, 1);
 }
 
 void
-saft_hash_table_add_count (SaftHashTable       *hash_table,
-                           const unsigned char *kmer,
-                           long                 count)
+saft_hash_table_add_count (SaftHashTable      *hash_table,
+                           const SaftHashKmer *kmer,
+                           long                count)
 {
   SaftHashNode *node;
   unsigned long node_index;
@@ -610,7 +574,7 @@ saft_hash_table_add_count (SaftHashTable       *hash_table,
     node->value.count += count;
   else
     {
-      saft_hash_table_copy_kmer (hash_table, kmer, &node->kmer);
+      saft_hash_table_copy_kmer (hash_table, &node->kmer, kmer);
       node->value.count = count;
       node->key_hash    = key_hash;
       hash_table->nnodes++;
@@ -624,8 +588,8 @@ saft_hash_table_add_count (SaftHashTable       *hash_table,
 }
 
 SaftHashNode*
-saft_hash_table_lookup_or_create (SaftHashTable       *hash_table,
-                                  const unsigned char *kmer)
+saft_hash_table_lookup_or_create (SaftHashTable      *hash_table,
+                                  const SaftHashKmer *kmer)
 {
   SaftHashNode *node;
   unsigned long node_index;
@@ -638,7 +602,7 @@ saft_hash_table_lookup_or_create (SaftHashTable       *hash_table,
 
   if (old_hash <= 1)
     {
-      saft_hash_table_copy_kmer (hash_table, kmer, &node->kmer);
+      saft_hash_table_copy_kmer (hash_table, &node->kmer, kmer);
       node->key_hash    = key_hash;
       node->value.count = 0;
       node->value.ptr   = NULL;
