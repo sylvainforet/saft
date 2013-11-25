@@ -378,9 +378,9 @@ search_engine_dna_array_search_two_sequences (SaftSearchEngine *engine,
   mean                 = saft_stats_mean (se->stats_context,
                                           query->seq_length,
                                           subject->seq_length);
-  var                  = saft_stats_mean (se->stats_context,
-                                          query->seq_length,
-                                          subject->seq_length);
+  var                  = saft_stats_var (se->stats_context,
+                                         query->seq_length,
+                                         subject->seq_length);
   result->name         = strdup(subject->name);
   result->p_value      = saft_stats_pgamma_m_v (result->d2, mean, var);
   result->p_value_adj  = result->p_value;
@@ -480,9 +480,9 @@ search_engine_dna_array_db_iter_func (SaftSequence *sequence,
   mean   = saft_stats_mean (engine->stats_context,
                             sequence->seq_length,
                             engine->tmp_length);
-  var    = saft_stats_mean (engine->stats_context,
-                            sequence->seq_length,
-                            engine->tmp_length);
+  var    = saft_stats_var (engine->stats_context,
+                           sequence->seq_length,
+                           engine->tmp_length);
   free (counts);
 
   /* FIXME adjust this euristic depending on the user's required significance level */
@@ -572,9 +572,9 @@ search_engine_dna_array_search_query (SaftSequence *sequence,
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
-      var  = saft_stats_mean (engine->stats_context,
-                              sequence->seq_length,
-                              entry->length);
+      var  = saft_stats_var (engine->stats_context,
+                             sequence->seq_length,
+                             entry->length);
 
       /* FIXME adjust this euristic depending on the user's required significance level */
       if (d2 > mean + 2 * sqrt (var))
@@ -657,9 +657,9 @@ search_engine_dna_array_search_db (SaftSequence *sequence,
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
-      var  = saft_stats_mean (engine->stats_context,
-                              sequence->seq_length,
-                              entry->length);
+      var  = saft_stats_var (engine->stats_context,
+                             sequence->seq_length,
+                             entry->length);
 
       if (d2 > mean + 2 * sqrt (var))
         {

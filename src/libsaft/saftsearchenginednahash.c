@@ -262,9 +262,9 @@ search_engine_dna_hash_search_two_sequences (SaftSearchEngine *engine,
   mean                 = saft_stats_mean (se->stats_context,
                                           query->seq_length,
                                           subject->seq_length);
-  var                  = saft_stats_mean (se->stats_context,
-                                          query->seq_length,
-                                          subject->seq_length);
+  var                  = saft_stats_var (se->stats_context,
+                                         query->seq_length,
+                                         subject->seq_length);
   result->name         = strdup(subject->name);
   result->p_value      = saft_stats_pgamma_m_v (result->d2, mean, var);
   result->p_value_adj  = result->p_value;
@@ -360,9 +360,9 @@ search_engine_dna_hash_db_iter_func (SaftSequence *sequence,
   mean   = saft_stats_mean (engine->stats_context,
                             sequence->seq_length,
                             engine->tmp_length);
-  var    = saft_stats_mean (engine->stats_context,
-                            sequence->seq_length,
-                            engine->tmp_length);
+  var    = saft_stats_var (engine->stats_context,
+                           sequence->seq_length,
+                           engine->tmp_length);
   saft_hash_table_destroy (counts);
 
   /* FIXME adjust this euristic depending on the user's required significance level */
@@ -452,24 +452,28 @@ search_engine_dna_hash_search_db (SaftSequence *sequence,
   engine = (SearchEngineDNAHash*)data;
   counts = search_engine_dna_hash_hash_sequence (engine, sequence);
 
+  printf (">>> %s\n", sequence->name);
   for (entry = engine->query_cache; entry; entry = entry->next)
     {
       unsigned long d2;
       double        mean;
       double        var;
 
+      printf (">>>    %s\n", entry->name);
       d2   = search_engine_dna_hash_d2 (engine,
                                         entry->counts,
                                         counts);
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
-      var  = saft_stats_mean (engine->stats_context,
-                              sequence->seq_length,
-                              entry->length);
+      var  = saft_stats_var (engine->stats_context,
+                             sequence->seq_length,
+                             entry->length);
 
+      printf (">>>    %ld %f %f\n", d2, mean, var);
       if (d2 > mean + 2 * sqrt (var))
         {
+          printf (">>>    -----\n");
           SaftSearch *search;
           SaftResult *result;
 
@@ -540,9 +544,9 @@ search_engine_dna_hash_search_query (SaftSequence         *sequence,
       mean = saft_stats_mean (engine->stats_context,
                               sequence->seq_length,
                               entry->length);
-      var  = saft_stats_mean (engine->stats_context,
-                              sequence->seq_length,
-                              entry->length);
+      var  = saft_stats_var (engine->stats_context,
+                             sequence->seq_length,
+                             entry->length);
 
       /* FIXME adjust this euristic depending on the user's required significance level */
       if (d2 > mean + 2 * sqrt (var))

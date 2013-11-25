@@ -339,6 +339,7 @@ saft_search_engine_new (SaftOptions *options)
 {
   if (options->program == SAFTN)
     {
+      //return saft_search_engine_dna_hash_new (options);
       if (options->word_size <= 8)
         {
           /* Array based DNA engine */
