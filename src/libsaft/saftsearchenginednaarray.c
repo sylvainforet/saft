@@ -669,7 +669,8 @@ search_engine_dna_array_search_db (SaftSequence *sequence,
           if (!engine->search_array[query_idx])
             {
               search       = saft_search_new (engine->search_engine.options->max_results);
-              /* TODO could use the same string as in the entry and deallocate carefully */
+              /* TODO could use the same string as in the entry and deallocate
+               * carefully (probably not worth the trouble) */
               search->name = strdup (entry->name);
               engine->search_array[query_idx] = search;
             }

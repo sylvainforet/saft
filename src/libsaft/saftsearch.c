@@ -276,6 +276,7 @@ results_heap_insert (SaftSearch *search,
       search->results[i - 1] = search->results[p - 1];
       search->results[p - 1] = tmp;
       i                      = p;
+      p                      = results_heap_parent (i);
     }
 }
 
@@ -285,16 +286,14 @@ results_heap_heapify (SaftSearch *search)
   int i;
 
   i = 1;
-  while (1)
+  while (i <= search->n_results)
     {
       const int l   = results_heap_left (i);
       const int r   = results_heap_right (i);
-      int       max = 0;
+      int       max = i;
 
       if (l <= search->n_results && search->results[l - 1]->p_value > search->results[i - 1]->p_value)
         max = l;
-      else
-        max = i;
       if (r <= search->n_results && search->results[r - 1]->p_value > search->results[max - 1]->p_value)
         max = r;
 
