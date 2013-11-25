@@ -70,7 +70,6 @@ struct _SearchEngineDNAHash
   SaftHashTable    *tmp_counts;
 
   size_t            n_queries;
-  size_t            max_words;
   size_t            tmp_length;
 };
 
@@ -140,7 +139,6 @@ saft_search_engine_dna_hash_new (SaftOptions *options)
   engine->tmp_search                         = NULL;
   engine->tmp_counts                         = NULL;
   engine->n_queries                          = 0;
-  engine->max_words                          = 1 << (2 * options->word_size);
   engine->tmp_length                         = 0;
 
   return (SaftSearchEngine*)engine;
@@ -168,8 +166,8 @@ search_engine_dna_hash_free (SaftSearchEngine *engine)
 }
 
 static SaftHashTable*
-search_engine_dna_hash_hash_sequence (SearchEngineDNAHash  *engine,
-                                      SaftSequence         *sequence)
+search_engine_dna_hash_hash_sequence (SearchEngineDNAHash *engine,
+                                      SaftSequence        *sequence)
 {
   SaftHashTable *table;
   const size_t   k = engine->search_engine.options->word_size;
@@ -179,7 +177,8 @@ search_engine_dna_hash_hash_sequence (SearchEngineDNAHash  *engine,
 
   if (k <= KMER_VAL_NUCS)
     {
-      const unsigned long mask = (~ 0L) >> (8 * sizeof (unsigned long) - (2 * k));
+      /* FIXME this should be computed only once for an engine instance */
+      const unsigned long mask = (~ 0ul) >> (8 * sizeof (unsigned long) - (2 * k));
       SaftHashKmer        kmer;
 
       for (i = 0; i < k; i++)
@@ -210,9 +209,9 @@ search_engine_dna_hash_hash_sequence (SearchEngineDNAHash  *engine,
 }
 
 static unsigned long
-search_engine_dna_hash_d2 (SearchEngineDNAHash  *engine,
-                           SaftHashTable        *counts1,
-                           SaftHashTable        *counts2)
+search_engine_dna_hash_d2 (SearchEngineDNAHash *engine,
+                           SaftHashTable       *counts1,
+                           SaftHashTable       *counts2)
 {
   SaftHashTableIter iter;
   SaftHashNode     *node;
@@ -452,14 +451,12 @@ search_engine_dna_hash_search_db (SaftSequence *sequence,
   engine = (SearchEngineDNAHash*)data;
   counts = search_engine_dna_hash_hash_sequence (engine, sequence);
 
-  printf (">>> %s\n", sequence->name);
   for (entry = engine->query_cache; entry; entry = entry->next)
     {
       unsigned long d2;
       double        mean;
       double        var;
 
-      printf (">>>    %s\n", entry->name);
       d2   = search_engine_dna_hash_d2 (engine,
                                         entry->counts,
                                         counts);
@@ -470,10 +467,8 @@ search_engine_dna_hash_search_db (SaftSequence *sequence,
                              sequence->seq_length,
                              entry->length);
 
-      printf (">>>    %ld %f %f\n", d2, mean, var);
       if (d2 > mean + 2 * sqrt (var))
         {
-          printf (">>>    -----\n");
           SaftSearch *search;
           SaftResult *result;
 

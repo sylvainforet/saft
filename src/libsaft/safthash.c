@@ -274,7 +274,7 @@ saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
    * We need to make sure our hash value is not one of these.
    */
   node_index = hash_value % hash_table->mod;
-  node       = &hash_table->nodes[node_index];
+  node       = hash_table->nodes + node_index;
 
   while (node->key_hash)
     {
@@ -288,7 +288,7 @@ saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
       step++;
       node_index += saft_hash_table_probe (step);
       node_index &= hash_table->mask;
-      node        = &hash_table->nodes[node_index];
+      node        = hash_table->nodes + node_index;
     }
   return node->key_hash ? node : NULL;
 }
@@ -336,7 +336,7 @@ saft_hash_table_lookup_node_for_insertion (SaftHashTable      *hash_table,
       step++;
       node_index += saft_hash_table_probe (step);
       node_index &= hash_table->mask;
-      node        = &hash_table->nodes[node_index];
+      node        = hash_table->nodes + node_index;
     }
   if (have_tombstone)
     return first_tombstone;
@@ -374,7 +374,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
           step++;
           hash_val += saft_hash_table_probe (step);
           hash_val &= hash_table->mask;
-          new_node  = &new_nodes[hash_val];
+          new_node  = new_nodes + hash_val;
         }
       new_node->kmer     = node->kmer;
       new_node->key_hash = node->key_hash;
@@ -446,7 +446,7 @@ saft_hash_table_resize (SaftHashTable *hash_table)
               hash_val += saft_hash_table_probe (step);
               hash_val &= hash_table->mask;
             }
-          next_node = &hash_table->nodes[hash_val];
+          next_node = hash_table->nodes + hash_val;
         }
       *next_node = tmp_node;
     }
@@ -531,7 +531,7 @@ saft_hash_table_iter_next (SaftHashTableIter *iter)
           iter->position = position;
           return NULL;
         }
-      node = &iter->hash_table->nodes[position];
+      node = iter->hash_table->nodes + position;
     }
   while (node->key_hash <= 1);
   iter->position = position;
@@ -615,7 +615,7 @@ saft_hash_table_lookup_or_create (SaftHashTable      *hash_table,
           if (saft_hash_table_maybe_resize (hash_table))
             {
               node_index = saft_hash_table_lookup_node_for_insertion (hash_table, kmer, &key_hash);
-              node       = &hash_table->nodes[node_index];
+              node       = hash_table->nodes + node_index;
             }
         }
     }
