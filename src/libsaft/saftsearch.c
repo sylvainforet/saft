@@ -339,7 +339,9 @@ saft_search_engine_new (SaftOptions *options)
 {
   if (options->program == SAFTN)
     {
-      if (options->word_size <= 8)
+      /* Note, while SearchEngineDNAArray would work for k = 8, it is slower
+       * than SearchEngineDNAHash for that word size */
+      if (options->word_size < 8)
         {
           /* Array based DNA engine */
           return saft_search_engine_dna_array_new (options);

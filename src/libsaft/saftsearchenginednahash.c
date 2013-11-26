@@ -213,11 +213,10 @@ search_engine_dna_hash_d2 (SearchEngineDNAHash *engine,
                            SaftHashTable       *counts1,
                            SaftHashTable       *counts2)
 {
-  SaftHashTableIter iter;
-  SaftHashNode     *node;
-  SaftHashTable    *small_table;
-  SaftHashTable    *large_table;
-  unsigned long     d2 = 0;
+  SaftHashTable *small_table;
+  SaftHashTable *large_table;
+  unsigned long  d2 = 0;
+  size_t         i;
 
   small_table = counts1;
   large_table = counts2;
@@ -227,28 +226,32 @@ search_engine_dna_hash_d2 (SearchEngineDNAHash *engine,
       large_table = counts1;
     }
 
-  saft_hash_table_iter_init (&iter, small_table);
-  while ((node = saft_hash_table_iter_next (&iter)))
+  for (i = 0; i < small_table->size; i++)
     {
-      SaftHashNode  *res;
+      SaftHashNode  *node1;
+      SaftHashNode  *node2;
       unsigned long  node_index;
-      unsigned long  step       = 0;
+      unsigned long  step = 0;
 
-      node_index = node->key_hash % large_table->mod;
-      res        = large_table->nodes + node_index;
+      node1 = small_table->nodes + i;
+      if (node1->key_hash <= 1)
+        continue;
 
-      while (res->key_hash)
+      node_index = node1->key_hash % large_table->mod;
+      node2      = large_table->nodes + node_index;
+
+      while (node2->key_hash)
         {
-          if (res->key_hash == node->key_hash)
-            if (large_table->key_equal_func (&node->kmer, &res->kmer, large_table->kmer_bytes))
+          if (node2->key_hash == node1->key_hash)
+            if (large_table->key_equal_func (&node1->kmer, &node2->kmer, large_table->kmer_bytes))
               {
-                d2 += node->value.count * res->value.count;
+                d2 += node1->value.count * node2->value.count;
                 break;
               }
           step++;
           node_index += saft_hash_table_probe (step);
           node_index &= large_table->mask;
-          res         = large_table->nodes + node_index;
+          node2       = large_table->nodes + node_index;
         }
     }
 
