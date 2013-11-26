@@ -34,6 +34,11 @@ extern "C"
 /* Generic saft hash table */
 /***************************/
 
+/* Linear probing */
+#define saft_hash_table_probe(step) (step)
+/* For qudratic probing probing (linear seems marginally faster here) */
+/* #define saft_hash_table_probe(step) ((step) * (step)) */
+
 
 #define KMER_VAL_BYTES (sizeof (long))
 #define KMER_VAL_NUCS  (KMER_VAL_BYTES * NUCS_PER_BYTE)
@@ -137,10 +142,6 @@ SaftHashNode*  saft_hash_table_lookup_or_create    (SaftHashTable       *hash_ta
 
 SaftHashNode*  saft_hash_table_lookup              (SaftHashTable       *hash_table,
                                                     const SaftHashKmer  *kmer);
-
-SaftHashNode*  saft_hash_table_lookup_with_key     (SaftHashTable       *hash_table,
-                                                    const SaftHashKmer  *kmer,
-                                                    unsigned long        key);
 
 void           saft_hash_table_iter_init           (SaftHashTableIter   *iter,
                                                     SaftHashTable       *hash_table);

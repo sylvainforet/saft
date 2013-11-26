@@ -230,11 +230,26 @@ search_engine_dna_hash_d2 (SearchEngineDNAHash *engine,
   saft_hash_table_iter_init (&iter, small_table);
   while ((node = saft_hash_table_iter_next (&iter)))
     {
-      const SaftHashNode *res = saft_hash_table_lookup_with_key (large_table,
-                                                                 &node->kmer,
-                                                                 node->key_hash);
-      if (res)
-        d2 += node->value.count * res->value.count;
+      SaftHashNode  *res;
+      unsigned long  node_index;
+      unsigned long  step       = 0;
+
+      node_index = node->key_hash % large_table->mod;
+      res        = large_table->nodes + node_index;
+
+      while (res->key_hash)
+        {
+          if (res->key_hash == node->key_hash)
+            if (large_table->key_equal_func (&node->kmer, &res->kmer, large_table->kmer_bytes))
+              {
+                d2 += node->value.count * res->value.count;
+                break;
+              }
+          step++;
+          node_index += saft_hash_table_probe (step);
+          node_index &= large_table->mask;
+          res         = large_table->nodes + node_index;
+        }
     }
 
   return d2;

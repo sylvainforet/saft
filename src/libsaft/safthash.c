@@ -106,12 +106,6 @@ static const long prime_mod[] =
   18446744073709551557ul
 };
 
-/* TODO compare the two types of probing */
-/* For linear probing */
-#define saft_hash_table_probe(step) (step)
-/* For qudratic probing probing */
-/* #define saft_hash_table_probe(step) ((step) * (step)) */
-
 
 static void                 saft_hash_table_set_shift                 (SaftHashTable       *hash_table,
                                                                        int                  shift);
@@ -248,7 +242,10 @@ SaftHashNode*
 saft_hash_table_lookup (SaftHashTable       *hash_table,
                         const SaftHashKmer  *kmer)
 {
-  unsigned long hash_value;
+  SaftHashNode       *node;
+  unsigned long       node_index;
+  unsigned long       hash_value;
+  unsigned long       step       = 0;
 
   /* Empty buckets have hash_value set to 0, and for tombstones, it's 1.
    * We need to make sure our hash value is not one of these.
@@ -256,19 +253,6 @@ saft_hash_table_lookup (SaftHashTable       *hash_table,
   hash_value = (* hash_table->hash_func) (kmer, hash_table->kmer_bytes);
   if (SAFT_UNLIKELY (hash_value <= 1))
     hash_value = 2;
-
-  return saft_hash_table_lookup_with_key (hash_table, kmer, hash_value);
-}
-
-SaftHashNode*
-saft_hash_table_lookup_with_key (SaftHashTable       *hash_table,
-                                 const SaftHashKmer  *kmer,
-                                 unsigned long        key)
-{
-  SaftHashNode       *node;
-  unsigned long       node_index;
-  const unsigned long hash_value = key;
-  unsigned long       step       = 0;
 
   /* Empty buckets have hash_value set to 0, and for tombstones, it's 1.
    * We need to make sure our hash value is not one of these.
